@@ -1,0 +1,22 @@
+# Secrets — never commit (see HANDOFF.md § Security)
+.env
+.env.*
+*.session            # Telethon auth artifacts
+*.session-journal
+
+# Generated briefs (text + audio)
+briefs/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
