@@ -1,0 +1,22 @@
+# Sources — a specific place to ingest from.
+# Discord is channel-level; Telegram is chat-level (see HANDOFF.md § Ontology).
+#
+# `credentials_ref` is the NAME of an env var holding the secret, NEVER the
+# secret itself. See HANDOFF.md § Security.
+#
+# NOTE: the entries below are FAKE placeholders for step-1/step-2 development.
+# Swap in real channel_id / chat_id values when wiring real adapters (step 4).
+
+[[source]]
+id = "discord-chip-design"
+platform = "discord"
+identifier = "000000000000000001"        # fake channel_id
+display_name = "discord/chip-design"
+credentials_ref = "DISCORD_USER_TOKEN"
+
+[[source]]
+id = "telegram-ee-group"
+platform = "telegram"
+identifier = "-1000000000001"            # fake chat_id
+display_name = "telegram/ee-group"
+credentials_ref = "TELEGRAM_SESSION"

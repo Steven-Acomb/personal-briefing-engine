@@ -1,0 +1,22 @@
+[project]
+name = "personal-briefing-engine"
+version = "0.1.0"
+description = "A reduced layer over multiple information sources that boils them into periodic briefings."
+requires-python = ">=3.11"      # tomllib is stdlib from 3.11
+dependencies = [
+    # Deliberately empty for step 1 (ontology + config only). Deps are added as
+    # each subsystem lands:
+    #   anthropic         — synthesis
+    #   openai            — TTS
+    #   discord.py-self   — Discord user-token adapter
+    #   telethon          — Telegram userbot adapter
+    #   arxiv, feedparser — research/news adapters
+    #   APScheduler       — scheduling (optional; cron works too)
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["core", "adapters"]

@@ -1,0 +1,33 @@
+# Briefings — named, scheduled output definitions. Many-to-many with sources.
+#
+# Each [[briefing.source]] block is a SourceConfig: it references a source by
+# `id` (from sources.toml) and optionally filters it for THIS briefing.
+#
+# `synthesis_instruction` is first-class. Expect to iterate on it heavily — it
+# is where the real value of the digest is tuned (see HANDOFF.md § Ontology).
+
+[[briefing]]
+name = "daily-morning"
+schedule = "0 7 * * *"          # cron: 07:00 every day
+lookback_window = "24h"
+output = ["text", "audio"]
+delivery = ["local"]
+synthesis_instruction = """
+You are producing a short morning briefing for an experienced EE/chip-design
+engineer. Synthesize ACROSS all sources — do not just list messages per source.
+Lead with anything time-sensitive or actionable. Group the rest by theme
+(chip design, tooling, general EE). Be concise and skimmable; skip small talk,
+memes, and logistics chatter. Write it as a natural spoken script suitable for
+text-to-speech: no markdown headers, no bullet characters, ~2-3 minutes read
+aloud. Cite the source (e.g. "over in the chip-design channel") when it adds
+context.
+"""
+
+  [[briefing.source]]
+  source_id = "discord-chip-design"
+  channel_filter = []                  # empty = whole source
+  keyword_filter = []
+
+  [[briefing.source]]
+  source_id = "telegram-ee-group"
+  keyword_filter = ["tapeout", "PDK", "verification", "RTL"]
