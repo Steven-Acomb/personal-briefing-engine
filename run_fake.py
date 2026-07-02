@@ -41,8 +41,8 @@ def main() -> None:
     parser.add_argument(
         "--voice",
         default=None,
-        help="TTS voice to try (alloy, ash, ballad, coral, echo, fable, onyx, "
-        "nova, sage, shimmer, verse). Default: ash. Filename is tagged with it.",
+        help="OpenAI TTS voice to try (alloy, ash, ballad, coral, echo, fable, "
+        "onyx, nova, sage, shimmer, verse). Default: echo. Implies --backend openai.",
     )
     parser.add_argument(
         "--from",
@@ -55,8 +55,21 @@ def main() -> None:
     parser.add_argument(
         "--no-instructions",
         action="store_true",
-        help="omit the TTS delivery instructions (plain, unsteered read) — to "
-        "A/B whether the instructions help. Output tagged '-plain'.",
+        help="omit the OpenAI TTS delivery instructions (plain, unsteered read). "
+        "Output tagged '-plain'.",
+    )
+    parser.add_argument(
+        "--backend",
+        choices=["auto", "elevenlabs", "openai"],
+        default="auto",
+        help="TTS backend. auto = ElevenLabs if ELEVENLABS_API_KEY set, else "
+        "OpenAI echo-plain fallback. Default: auto.",
+    )
+    parser.add_argument(
+        "--el-voice",
+        default=None,
+        metavar="VOICE_ID",
+        help="ElevenLabs voice id (overrides ELEVENLABS_VOICE_ID / default).",
     )
     args = parser.parse_args()
 
@@ -89,19 +102,41 @@ def main() -> None:
 
     want_audio = OutputMode.AUDIO in briefing.output and not args.no_audio
     if want_audio:
-        from core.tts import INSTRUCTIONS, VOICE, synthesize_audio  # lazy: --no-audio needs no OpenAI key
+        from core.tts import INSTRUCTIONS, VOICE, synthesize_audio  # lazy: --no-audio needs no key
+
+        # Passing a specific OpenAI voice / --no-instructions implies the OpenAI
+        # audition path, unless the user forced --backend explicitly.
+        backend = args.backend
+        if backend == "auto" and (args.voice or args.no_instructions):
+            backend = "openai"
 
         voice = args.voice or VOICE
         instructions = "" if args.no_instructions else INSTRUCTIONS
         ext = ".wav" if args.wav else ".mp3"
-        # Tag the filename with voice (and '-plain' when unsteered) so A/B
-        # comparisons don't overwrite each other.
-        tag = f"{voice}-plain" if args.no_instructions else voice
+
+        # Filename tag so A/B comparisons don't overwrite each other.
+        if backend == "elevenlabs" or (backend == "auto"):
+            tag = "elevenlabs" if backend == "elevenlabs" else "auto"
+        else:
+            tag = f"{voice}-plain" if args.no_instructions else voice
+
         audio_path = text_path.with_name(f"{text_path.stem}-{tag}{ext}")
-        steer = "no instructions" if args.no_instructions else "steered"
-        print(f"Generating audio (voice: {voice}, {steer})...")
-        synthesize_audio(text, audio_path, voice=voice, instructions=instructions)
-        print(f"Audio written: {audio_path}")
+        print(f"Generating audio (backend: {backend})...")
+        audio_path, used = synthesize_audio(
+            text,
+            audio_path,
+            backend=backend,
+            voice=voice,
+            instructions=instructions,
+            el_voice_id=args.el_voice,
+        )
+        # In auto mode, rename to reflect what actually ran (elevenlabs vs fallback).
+        if backend == "auto" and used != "auto":
+            final = audio_path.with_name(
+                audio_path.name.replace(f"-auto{ext}", f"-{used}{ext}")
+            )
+            audio_path = audio_path.rename(final)
+        print(f"Audio written: {audio_path}  (backend used: {used})")
         if args.wav:
             print(f"\nListen locally:  paplay '{audio_path}'")
         else:

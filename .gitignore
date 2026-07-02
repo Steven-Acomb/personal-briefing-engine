@@ -1,7 +1,12 @@
 # Secrets — never commit (see HANDOFF.md § Security)
+# NOTE: .gitignore does NOT support trailing inline comments — keep comments
+# on their own lines, or the pattern silently includes the comment text.
 .env
 .env.*
-*.session            # Telethon auth artifacts
+# ...but DO commit the no-secrets template:
+!.env.example
+# Telethon auth artifacts (live credentials):
+*.session
 *.session-journal
 
 # Generated briefs (text + audio)

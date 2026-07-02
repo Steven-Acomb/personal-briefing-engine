@@ -29,16 +29,35 @@ end up running briefings many times a day and want to cut cost, we can switch
 the synthesis model to `claude-sonnet-5` (cheaper) later; Opus is the default
 for best quality while we tune the prompt.
 
-### b) OpenAI API key — OPTIONAL (audio / TTS only)
+### b) ElevenLabs API key — OPTIONAL but recommended (primary audio / TTS)
 
-Only needed if you want the spoken audio brief. The written brief (the source of
-truth) needs only the Anthropic key.
+This is the good-sounding voice path (much closer to the ChatGPT "Advanced
+Voice" quality). Only needed if you want the spoken brief; the written brief
+needs only the Anthropic key.
+
+1. Go to <https://elevenlabs.io>, sign up (there's a **free trial tier** — try
+   before paying).
+2. **Profile → API Keys → Create** (starts with `sk_...`). Put it in `.env` as
+   `ELEVENLABS_API_KEY`.
+3. **Pick your voice** — this is the whole reason we added ElevenLabs. Browse
+   the Voice Library in their app, find one you like (search for warm/narration
+   male voices if you're chasing the Ember feel), and copy its **Voice ID** into
+   `.env` as `ELEVENLABS_VOICE_ID`. Leave it blank to use the default ("Brian",
+   a warm male narrator). Optionally set `ELEVENLABS_MODEL` — `eleven_v3` is the
+   most expressive; default is `eleven_multilingual_v2` (stable, high quality).
+
+### c) OpenAI API key — OPTIONAL (fallback audio only)
+
+Used only as the fallback voice (`echo`, plain) when no ElevenLabs key is set.
+Skip it if you're going with ElevenLabs.
 
 1. Go to <https://platform.openai.com>, sign in / sign up.
-2. **Settings → Billing → add a payment method** (again ~$5 credit is plenty).
-3. **API keys → Create new secret key**. Copy it (starts with `sk-...`).
+2. **Settings → Billing → add a payment method** (~$5 credit is plenty).
+3. **API keys → Create new secret key** (starts with `sk-...`).
 
-Cost: TTS uses `gpt-4o-mini-tts`. A ~3-minute brief is a fraction of a cent.
+Cost: OpenAI TTS (`gpt-4o-mini-tts`) is a fraction of a cent per brief.
+ElevenLabs pricing is per-character — check their current tiers; a daily brief
+is modest but not free like OpenAI.
 
 > Later sources (Discord, Telegram) will need their own credentials. Ignore
 > those for now — step 2 is fake data only. See HANDOFF.md § Security.
@@ -58,11 +77,15 @@ cp .env.example .env
 Then edit `.env` and fill in:
 
 ```
-ANTHROPIC_API_KEY=sk-ant-...
-OPENAI_API_KEY=sk-...          # leave blank if skipping audio for now
+ANTHROPIC_API_KEY=sk-ant-...      # required (text synthesis)
+ELEVENLABS_API_KEY=sk_...         # primary audio voice (recommended)
+ELEVENLABS_VOICE_ID=              # optional; blank = "Brian" default
+OPENAI_API_KEY=sk-...             # only for the fallback voice; optional
 ```
 
-Leave the other placeholders (Discord/Telegram) empty until we build those.
+Audio backend picks itself: if `ELEVENLABS_API_KEY` is set it uses ElevenLabs,
+otherwise it falls back to OpenAI's `echo` voice (needs `OPENAI_API_KEY`). Leave
+the Discord/Telegram placeholders empty until we build those.
 
 ---
 
