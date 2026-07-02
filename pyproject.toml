@@ -4,10 +4,10 @@ version = "0.1.0"
 description = "A reduced layer over multiple information sources that boils them into periodic briefings."
 requires-python = ">=3.11"      # tomllib is stdlib from 3.11
 dependencies = [
-    # Deliberately empty for step 1 (ontology + config only). Deps are added as
-    # each subsystem lands:
-    #   anthropic         — synthesis
-    #   openai            — TTS
+    "anthropic>=0.116",   # synthesis
+    "openai>=2.0",        # TTS
+    "python-dotenv>=1.0", # load secrets from .env
+    # Added as each later subsystem lands:
     #   discord.py-self   — Discord user-token adapter
     #   telethon          — Telegram userbot adapter
     #   arxiv, feedparser — research/news adapters

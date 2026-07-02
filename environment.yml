@@ -1,0 +1,18 @@
+# Conda environment for the personal briefing engine.
+#
+# Dependencies themselves live in pyproject.toml (single source of truth) — this
+# file just pins the interpreter and installs the project from there via pip.
+#
+#   conda env create -f environment.yml
+#   conda activate personal-briefing-engine
+#
+# When you add/change deps, edit pyproject.toml, then:
+#   conda env update -f environment.yml --prune
+name: personal-briefing-engine
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12        # >=3.11 required (stdlib tomllib)
+  - pip
+  - pip:
+      - -e .           # installs anthropic/openai/python-dotenv from pyproject.toml

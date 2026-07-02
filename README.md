@@ -38,12 +38,18 @@ scheduler.py      # (todo) cron / APScheduler entrypoints
 
 ## Setup
 
+See **[HUMAN_TODO.md](HUMAN_TODO.md)** for the full first-run walkthrough (API
+keys + environment). Short version — requires Python ≥ 3.11:
+
 ```bash
-cp .env.example .env      # fill in secrets; .env is gitignored
-python -m venv .venv && source .venv/bin/activate
+cp .env.example .env                 # fill in ANTHROPIC_API_KEY (+ OPENAI_API_KEY for audio)
+conda env create -f environment.yml  # or: uv sync  |  or: python -m venv .venv && pip install -e .
+conda activate personal-briefing-engine
+python run_fake.py --no-audio        # step-2 validation on fake data
 ```
 
-Requires Python ≥ 3.11 (`tomllib` is stdlib). No third-party deps yet.
+Dependencies are declared in `pyproject.toml` (single source of truth);
+`environment.yml` just pins Python and installs from it.
 
 ## Security
 
