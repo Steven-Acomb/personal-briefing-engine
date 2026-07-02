@@ -72,9 +72,19 @@ _FORMATS = {".mp3": "mp3", ".wav": "wav"}
 # --------------------------------------------------------------------------- #
 
 
+def _env(name: str) -> str | None:
+    """Read an env var, treating blank OR comment-like values as unset.
+
+    Guards against a common .env footgun: a trailing inline comment on an empty
+    optional var (e.g. `ELEVENLABS_MODEL=  # optional`) gets parsed as the value.
+    """
+    v = os.getenv(name, "").strip()
+    return None if (not v or v.startswith("#")) else v
+
+
 def elevenlabs_available() -> bool:
     """True if ElevenLabs can be used (key set and package importable)."""
-    if not os.getenv("ELEVENLABS_API_KEY"):
+    if not _env("ELEVENLABS_API_KEY"):
         return False
     try:
         import elevenlabs  # noqa: F401
@@ -147,7 +157,7 @@ def _synthesize_elevenlabs(
     else:
         raise ValueError(f"Unsupported extension {suffix!r}; use .mp3/.wav")
 
-    client = client or ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
+    client = client or ElevenLabs(api_key=_env("ELEVENLABS_API_KEY"))
     audio = client.text_to_speech.convert(
         text=text,
         voice_id=voice_id,
@@ -198,8 +208,8 @@ def synthesize_audio(
     resolved = _resolve_backend(backend)
 
     if resolved == "elevenlabs":
-        voice_id = el_voice_id or os.getenv("ELEVENLABS_VOICE_ID") or DEFAULT_EL_VOICE_ID
-        model = el_model or os.getenv("ELEVENLABS_MODEL") or DEFAULT_EL_MODEL
+        voice_id = el_voice_id or _env("ELEVENLABS_VOICE_ID") or DEFAULT_EL_VOICE_ID
+        model = el_model or _env("ELEVENLABS_MODEL") or DEFAULT_EL_MODEL
         try:
             path = _synthesize_elevenlabs(text, out_path, voice_id, model, el_client)
             return path, "elevenlabs"
