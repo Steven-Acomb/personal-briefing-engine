@@ -8,11 +8,11 @@ dependencies = [
     "elevenlabs>=1.0",    # TTS (primary backend)
     "openai>=2.0",        # TTS (fallback backend: echo-plain)
     "python-dotenv>=1.0", # load secrets from .env
+    "APScheduler>=3.10,<4", # scheduling (3.x BlockingScheduler/CronTrigger API)
     # Added as each later subsystem lands:
     #   discord.py-self   — Discord user-token adapter
     #   telethon          — Telegram userbot adapter
     #   arxiv, feedparser — research/news adapters
-    #   APScheduler       — scheduling (optional; cron works too)
 ]
 
 [build-system]

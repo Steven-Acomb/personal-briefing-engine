@@ -15,15 +15,19 @@ writing code.
 ```
 core/
   models.py       # the ontology: Source, Briefing, SourceConfig, Brief, IngestedItem
-  synthesize.py   # (todo) Claude synthesis — per-source + cross-source pass
-  tts.py          # (todo) text -> audio
-  delivery.py     # (todo) local / email / local web page
+  config.py       # load config/*.toml into the ontology
+  fixtures.py     # hand-made fake IngestedItems (step-2/3 validation)
+  synthesize.py   # Claude synthesis — cross-source pass
+  tts.py          # text -> audio (OpenAI echo-plain default; ElevenLabs backend)
+  delivery.py     # local file drop (email / web page later)
+  pipeline.py     # run one briefing end-to-end: gather -> synth -> tts -> deliver
 adapters/         # (todo) discord, telegram, arxiv, rss, hn -> IngestedItem
 config/
   sources.toml    # what to ingest from (fake placeholders for now)
   briefings.toml  # named scheduled digests + synthesis instructions
 briefs/           # generated text + audio output (gitignored)
-scheduler.py      # (todo) cron / APScheduler entrypoints
+run_fake.py       # dev/audition runner (synthesize + voice A/B on fake data)
+scheduler.py      # APScheduler entrypoint: list / once / run
 ```
 
 ## Build sequence (from HANDOFF.md)
@@ -46,6 +50,11 @@ cp .env.example .env                 # fill in ANTHROPIC_API_KEY (+ OPENAI_API_K
 conda env create -f environment.yml  # or: uv sync  |  or: python -m venv .venv && pip install -e .
 conda activate personal-briefing-engine
 python run_fake.py --no-audio        # step-2 validation on fake data
+```
+
+To resync after deps change:
+```bash
+conda env update -f environment.yml --prune
 ```
 
 Dependencies are declared in `pyproject.toml` (single source of truth);
