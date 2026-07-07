@@ -13,9 +13,9 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from core.config import load_sources
 from core.delivery import deliver
-from core.fixtures import FAKE_ITEMS
-from core.models import Briefing, IngestedItem, OutputMode
+from core.models import Briefing, IngestedItem, OutputMode, Platform
 
 BRIEFS_DIR = Path(__file__).resolve().parent.parent / "briefs"
 
@@ -23,20 +23,53 @@ BRIEFS_DIR = Path(__file__).resolve().parent.parent / "briefs"
 @dataclass
 class BriefResult:
     briefing_name: str
-    text_path: Path
+    text_path: Path | None
     audio_path: Path | None
     delivered: list[Path]
     dry_run: bool
+    skipped: bool = False
 
 
 def gather_items(briefing: Briefing) -> list[IngestedItem]:
-    """Collect the messages this briefing should cover.
+    """Collect the messages this briefing should cover, from its real sources.
 
-    SEAM for step 4: today this returns the hand-made fake batch. Real adapters
-    (Discord/Telegram/RSS) will replace this, honoring each SourceConfig and the
-    briefing's lookback window. Kept deliberately dumb for now.
+    Dispatches per source platform to the right adapter, honoring the briefing's
+    lookback window and each SourceConfig's keyword filter. A source whose adapter
+    isn't built yet (Telegram/RSS) or that errors is logged and skipped — one bad
+    source must not kill the whole brief.
     """
-    return FAKE_ITEMS
+    sources = load_sources()
+    since = datetime.now(timezone.utc) - briefing.lookback
+    items: list[IngestedItem] = []
+
+    for sc in briefing.sources:
+        src = sources.get(sc.source_id)
+        if src is None:
+            print(f"[gather] unknown source_id {sc.source_id!r}; skipping")
+            continue
+        try:
+            if src.platform is Platform.DISCORD:
+                from adapters import discord as discord_adapter  # lazy
+
+                fetched = discord_adapter.fetch(src, since)
+            else:
+                print(
+                    f"[gather] no adapter for {src.platform.value} yet "
+                    f"({src.display_name}); skipping"
+                )
+                continue
+        except Exception as e:  # noqa: BLE001 — one source shouldn't kill the run
+            print(f"[gather] {src.display_name}: fetch failed ({e}); skipping")
+            continue
+
+        if sc.keyword_filter:  # keep only messages mentioning a keyword
+            kws = [k.lower() for k in sc.keyword_filter]
+            fetched = [it for it in fetched if any(k in it.content.lower() for k in kws)]
+
+        print(f"[gather] {src.display_name}: {len(fetched)} item(s)")
+        items += fetched
+
+    return items
 
 
 def run_briefing(
@@ -48,6 +81,11 @@ def run_briefing(
 ) -> BriefResult:
     """Run one briefing to completion and deliver it. Returns a BriefResult."""
     items = gather_items(briefing)
+
+    if not items and not dry_run:
+        print(f"[pipeline] {briefing.name}: no items gathered — skipping brief.")
+        return BriefResult(briefing.name, None, None, [], dry_run=False, skipped=True)
+
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     briefs_dir.mkdir(parents=True, exist_ok=True)
     text_path = briefs_dir / f"{briefing.name}-{stamp}.md"

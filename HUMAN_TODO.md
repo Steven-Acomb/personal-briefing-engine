@@ -1,11 +1,13 @@
 # HUMAN_TODO — things only you can do
 
-The code for build-sequence **step 2** (validate the consumption experience on
-fake data) is written and wired. It can't run until you do the two things below:
-get API keys, and pick/create a Python environment. Everything after that is a
-single command.
+Checklist of things only you can do — get credentials and set up the environment.
 
-Est. time: ~15 min, most of it waiting on account signup.
+- **§1–5 are the general setup** and apply to **any machine** — use them to get a
+  fresh clone running on another computer.
+- **§6 is the Discord credentials** needed to run on real data (build-sequence
+  step 4).
+
+Est. first-time setup: ~15 min, most of it waiting on account signup.
 
 ---
 
@@ -74,18 +76,29 @@ access once we add it).
 cp .env.example .env
 ```
 
-Then edit `.env` and fill in:
+Then edit `.env` and fill in the values. **Do NOT add trailing `# comments` on a
+value line** — `python-dotenv` reads them as part of the value (we hit this). The
+lines:
 
 ```
-ANTHROPIC_API_KEY=sk-ant-...      # required (text synthesis)
-ELEVENLABS_API_KEY=sk_...         # primary audio voice (recommended)
-ELEVENLABS_VOICE_ID=              # optional; blank = "Brian" default
-OPENAI_API_KEY=sk-...             # only for the fallback voice; optional
+ANTHROPIC_API_KEY=sk-ant-...
+ELEVENLABS_API_KEY=sk_...
+ELEVENLABS_VOICE_ID=
+ELEVENLABS_MODEL=
+OPENAI_API_KEY=sk-...
+DISCORD_USER_TOKEN=
 ```
+
+- `ANTHROPIC_API_KEY` — **required** (text synthesis).
+- `ELEVENLABS_API_KEY` — primary audio voice (optional; recommended for quality).
+- `ELEVENLABS_VOICE_ID` / `ELEVENLABS_MODEL` — optional; blank = "Brian" /
+  `eleven_multilingual_v2` defaults.
+- `OPENAI_API_KEY` — only for the fallback voice (`echo`), used when no
+  ElevenLabs key is set.
+- `DISCORD_USER_TOKEN` — for real data; see §6. Leave blank until then.
 
 Audio backend picks itself: if `ELEVENLABS_API_KEY` is set it uses ElevenLabs,
-otherwise it falls back to OpenAI's `echo` voice (needs `OPENAI_API_KEY`). Leave
-the Discord/Telegram placeholders empty until we build those.
+otherwise it falls back to OpenAI's `echo` voice (needs `OPENAI_API_KEY`).
 
 ---
 
@@ -171,6 +184,49 @@ pipeline + scheduler) and step 4 (Discord/Telegram ingestion).
 
 ---
 
+## 6. Real data — Discord (build-sequence step 4)
+
+To run on real Discord data instead of fake fixtures you provide two things: your
+**user token** (once) and the **channel ID** of each channel to aggregate.
+
+### a) Discord user token → `.env`  (SENSITIVE — full account access)
+
+Discord blocks the old console method, so use the browser Network tab:
+
+1. Open Discord in a browser, press **F12** → **Network** tab.
+2. Click any channel to generate traffic; type **`messages`** in the filter box.
+3. Click a request to `discord.com/api/...` → **Headers** → **Request Headers**
+   → copy the value of the **`authorization`** header (a long string, no "Bot ").
+4. Put it in `.env` on its own line (no trailing comment):
+   ```
+   DISCORD_USER_TOKEN=<value>
+   ```
+
+Treat it like your password — `.env` only, never commit, never paste it into a
+chat. If it ever leaks, change your Discord password (that invalidates all
+tokens). Note: automating a user token is against Discord ToS; the risk is to
+your own account (a tradeoff accepted per HANDOFF.md § Security).
+
+### b) Channel IDs (not secret)
+
+1. Discord → **User Settings (gear) → Advanced → Developer Mode: ON**.
+2. Right-click a channel in the sidebar → **Copy Channel ID**.
+3. Put the ID into `config/sources.toml` as the `identifier` of a `discord`
+   source (replacing the fake placeholder), and set `display_name` to a readable
+   label used in briefs (e.g. `"discord/chip-design"`).
+
+### c) Test ingestion (read-only, no cost)
+
+```bash
+python -m adapters.discord <channel_id> --hours 24
+```
+
+Prints the last 24h of that channel, normalized into our message shape. No
+Claude, no TTS, no cost — it just confirms the token + channel work before the
+adapter is wired into the pipeline.
+
+---
+
 ## Troubleshooting
 
 - **`anthropic.AuthenticationError` / 401** — key missing or wrong in `.env`, or
@@ -180,5 +236,12 @@ pipeline + scheduler) and step 4 (Discord/Telegram ingestion).
   the console.
 - **Audio step fails but text worked** — `OPENAI_API_KEY` is missing/blank. Use
   `--no-audio` to skip it, or fill the key.
-- **`ModuleNotFoundError`** — env not activated, or deps not installed
-  (`pip install -e .` / `conda env update`).
+- **`ModuleNotFoundError`** — env not activated, or deps not installed. After I
+  add a dependency you must re-sync: `pip install -e .` (in the active env) or
+  `conda env update -f environment.yml --prune`.
+- **Discord `401`** — token invalid or expired; re-copy it from the Network tab.
+- **Discord `403`** — wrong channel ID, or your account can't see that channel.
+- **Discord `429`** — rate-limited; wait and retry (the adapter already paces
+  and caps its requests).
+- **Discord token but `Missing ... env var`** — the `DISCORD_USER_TOKEN` line has
+  a trailing `# comment` (breaks parsing) or `.env` isn't in the repo root.

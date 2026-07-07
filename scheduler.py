@@ -56,6 +56,9 @@ def _run_one(briefing, *, dry_run: bool, audio: bool) -> None:
     tag = " [DRY RUN]" if dry_run else ""
     print(f"[{datetime.now().astimezone():%Y-%m-%d %H:%M:%S}] running '{briefing.name}'{tag}")
     result = run_briefing(briefing, audio=audio, dry_run=dry_run)
+    if result.skipped:
+        print("  (no items gathered — no brief produced)")
+        return
     print(f"  text:      {result.text_path}")
     if result.audio_path:
         print(f"  audio:     {result.audio_path}")
