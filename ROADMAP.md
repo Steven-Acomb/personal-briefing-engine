@@ -49,3 +49,76 @@ to Ember-adjacent quality when we revisit:**
 `synthesize_audio` (currently OpenAI-only — the multi-backend seam was removed
 with ElevenLabs to avoid a framework with one backend; reintroduce it when the
 second provider lands). This is a "which provider" decision, not a rearchitecture.
+
+---
+
+## Remaining build-sequence work (planned, not blockers)
+
+- **Telegram adapter** — last chat source. Telethon userbot; heavier setup than
+  Discord (API id/hash + interactive login → `.session` file). Slots into the
+  same `gather_items` dispatch.
+- **Research/news adapters** — arXiv, RSS, HN. Read-only, no auth. Where the
+  source ontology's generality pays off.
+- **Wire up real briefings** — point config at actual channels + schedules.
+- **Email / web-page delivery** — currently the one `NotImplementedError` stub in
+  `core/delivery.py`; local file drop is the only working target.
+
+---
+
+## ISSUE-2: Unattended reliability — how does it actually run daily? (OPEN, highest-priority for real use)
+
+`scheduler run` is a **blocking foreground process** that must stay alive.
+Nothing supervises it: a desktop reboot, a crash, or a closed terminal and it's
+**silently dead** until noticed. No keep-alive story.
+
+**To decide/build:** the run model — systemd user service (Linux) / Task
+Scheduler (Windows) / a plain OS-cron that invokes `scheduler.py once` per
+briefing instead of a long-lived `run`. The cron-`once` approach may be simpler
+and more robust than keeping APScheduler alive (it sidesteps the supervision
+problem entirely), at the cost of the self-contained scheduler. Cross-platform
+(Win + Ubuntu) matters here.
+
+## ISSUE-3: Failure visibility / observability (OPEN)
+
+Scheduled runs print to **stdout only** — run detached, that output is lost.
+There's no log file and no failure notification. An **expired Discord token**
+(or any source error) currently degrades to empty/short briefs **silently**
+(gather skips the failing source by design). For an unattended tool you'd want:
+a rotating log file, and a "your brief failed / a source errored" alert (email,
+push, or just a marker file).
+
+## ISSUE-4: No automated tests (OPEN)
+
+Zero regression safety net — everything has been validated by manual runs. A
+refactor could break ingestion/synthesis and nothing would catch it. At minimum:
+unit tests for `store` (watermark logic), `config` loading, `models.parse_window`,
+and the Discord normalizer against a captured API payload fixture.
+
+## ISSUE-5: Discord adapter is v0 (OPEN, low urgency)
+
+- Skips attachment/embed-only messages (no text → dropped).
+- No thread / forum-channel support.
+- One channel per source (no server-wide ingestion).
+- 429 handling **raises** rather than backing off / retrying.
+- `channel_filter` in SourceConfig is defined but unused (no sub-channel filtering).
+
+## ISSUE-6: Secret / token lifecycle (OPEN)
+
+The Discord **user token expires periodically** → manual re-copy from the browser.
+No expiry detection or reminder; ties into ISSUE-3 (a 401 should surface loudly,
+not silently empty the brief).
+
+## ISSUE-7: No cross-brief memory (OPEN)
+
+The watermark dedups at the **message** level, but synthesis has no memory of
+**what it already told you**. A slow-burning multi-day thread can be
+re-summarized across successive briefs. (Flagged as open in HANDOFF.) Possible
+fix later: feed the prior brief (or a summary of it) into the synthesis prompt.
+
+## ISSUE-8: Undecided design questions (from HANDOFF)
+
+- **Topic tagging** — `IngestedItem.topic_tags` exists but is never populated;
+  no tagging at ingestion or synthesis time. Undecided whether it's worth it.
+- **Pre-filter vs. synthesis-filter policy** — both mechanisms exist
+  (`keyword_filter` pre-filters; Claude also filters in the prompt). No decision
+  on how much to lean on each (tokens/cost vs. control).
