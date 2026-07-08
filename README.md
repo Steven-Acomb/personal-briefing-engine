@@ -20,14 +20,17 @@ core/
   synthesize.py   # Claude synthesis — cross-source pass
   tts.py          # text -> audio (OpenAI echo-plain default; ElevenLabs backend)
   delivery.py     # local file drop (email / web page later)
+  store.py        # SQLite: brief history + per-source watermark (text stays as files)
   pipeline.py     # run one briefing end-to-end: gather -> synth -> tts -> deliver
-adapters/         # (todo) discord, telegram, arxiv, rss, hn -> IngestedItem
+adapters/
+  discord.py      # user-token REST history -> IngestedItem (telegram/rss/hn: todo)
 config/
   sources.toml    # what to ingest from (fake placeholders for now)
   briefings.toml  # named scheduled digests + synthesis instructions
 briefs/           # generated text + audio output (gitignored)
+data/             # SQLite db (gitignored)
 run_fake.py       # dev/audition runner (synthesize + voice A/B on fake data)
-scheduler.py      # APScheduler entrypoint: list / once / run
+scheduler.py      # APScheduler entrypoint: list / once / run / history
 ```
 
 ## Build sequence (from HANDOFF.md)

@@ -2,9 +2,10 @@
 
     gather items -> synthesize (Claude) -> write text -> TTS (optional) -> deliver
 
-Text is the source of truth; audio is derived. Everything is a file (no DB —
-see ROADMAP). `dry_run=True` skips the billable Claude/TTS calls so the wiring
-(scheduling, delivery, file layout) can be verified for free.
+Text/audio are files (source of truth in briefs/); SQLite (core.store) holds the
+brief history + per-source watermark. `dry_run=True` skips the billable
+Claude/TTS calls AND leaves the watermark untouched, so the wiring can be
+verified for free without "consuming" messages.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from core import store
 from core.config import load_sources
 from core.delivery import deliver
 from core.models import Briefing, IngestedItem, OutputMode, Platform
@@ -30,16 +32,23 @@ class BriefResult:
     skipped: bool = False
 
 
-def gather_items(briefing: Briefing) -> list[IngestedItem]:
+def gather_items(
+    briefing: Briefing, *, advance_watermark: bool = True
+) -> list[IngestedItem]:
     """Collect the messages this briefing should cover, from its real sources.
 
-    Dispatches per source platform to the right adapter, honoring the briefing's
-    lookback window and each SourceConfig's keyword filter. A source whose adapter
-    isn't built yet (Telegram/RSS) or that errors is logged and skipped — one bad
-    source must not kill the whole brief.
+    Incremental via the per-source watermark: each source is fetched newer than
+    max(now - lookback, last-covered) — so a run only pulls messages it hasn't
+    already covered, but never reaches back further than the lookback window
+    (bounds a big gap). Dispatches per platform, honors keyword filters, and
+    skips a source whose adapter isn't built yet or that errors.
+
+    `advance_watermark=False` (dry runs) reads the watermark but doesn't move it,
+    so a free wiring check doesn't "consume" messages a real run should cover.
     """
     sources = load_sources()
-    since = datetime.now(timezone.utc) - briefing.lookback
+    now = datetime.now(timezone.utc)
+    floor = now - briefing.lookback
     items: list[IngestedItem] = []
 
     for sc in briefing.sources:
@@ -47,6 +56,10 @@ def gather_items(briefing: Briefing) -> list[IngestedItem]:
         if src is None:
             print(f"[gather] unknown source_id {sc.source_id!r}; skipping")
             continue
+
+        watermark = store.get_watermark(briefing.name, sc.source_id)
+        since = max(floor, watermark) if watermark else floor
+
         try:
             if src.platform is Platform.DISCORD:
                 from adapters import discord as discord_adapter  # lazy
@@ -62,11 +75,18 @@ def gather_items(briefing: Briefing) -> list[IngestedItem]:
             print(f"[gather] {src.display_name}: fetch failed ({e}); skipping")
             continue
 
+        if watermark:  # strictly after last-covered — don't re-summarize the boundary msg
+            fetched = [it for it in fetched if it.timestamp > watermark]
+
         if sc.keyword_filter:  # keep only messages mentioning a keyword
             kws = [k.lower() for k in sc.keyword_filter]
             fetched = [it for it in fetched if any(k in it.content.lower() for k in kws)]
 
-        print(f"[gather] {src.display_name}: {len(fetched)} item(s)")
+        if advance_watermark:
+            newest = max((it.timestamp for it in fetched), default=None)
+            store.set_watermark(briefing.name, sc.source_id, newest)
+
+        print(f"[gather] {src.display_name}: {len(fetched)} item(s) since {since:%m-%d %H:%M}")
         items += fetched
 
     return items
@@ -80,13 +100,15 @@ def run_briefing(
     briefs_dir: Path = BRIEFS_DIR,
 ) -> BriefResult:
     """Run one briefing to completion and deliver it. Returns a BriefResult."""
-    items = gather_items(briefing)
+    # Dry runs must not advance the watermark (they'd "consume" messages).
+    items = gather_items(briefing, advance_watermark=not dry_run)
 
     if not items and not dry_run:
         print(f"[pipeline] {briefing.name}: no items gathered — skipping brief.")
         return BriefResult(briefing.name, None, None, [], dry_run=False, skipped=True)
 
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    generated_at = datetime.now(timezone.utc)
+    stamp = generated_at.strftime("%Y%m%dT%H%M%SZ")
     briefs_dir.mkdir(parents=True, exist_ok=True)
     text_path = briefs_dir / f"{briefing.name}-{stamp}.md"
 
@@ -117,6 +139,18 @@ def run_briefing(
 
     # --- delivery ---
     delivered = deliver(briefing.name, text_path, audio_path, briefing.delivery)
+
+    # --- record in history (not for dry runs) ---
+    if not dry_run:
+        store.record_brief(
+            briefing.name,
+            period_start=min(i.timestamp for i in items),
+            period_end=max(i.timestamp for i in items),
+            generated_at=generated_at,
+            text_path=text_path,
+            audio_path=audio_path,
+            status="delivered",
+        )
 
     return BriefResult(
         briefing_name=briefing.name,

@@ -12,6 +12,9 @@
 # Generated briefs (text + audio)
 briefs/
 
+# SQLite store (brief history + run-state)
+data/
+
 # Python
 __pycache__/
 *.py[cod]

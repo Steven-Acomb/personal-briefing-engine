@@ -72,6 +72,20 @@ def cmd_once(args) -> None:
     _run_one(briefings[args.briefing], dry_run=args.dry_run, audio=not args.no_audio)
 
 
+def cmd_history(args) -> None:
+    from core import store
+
+    rows = store.recent_briefs(args.briefing, limit=args.limit)
+    if not rows:
+        print("No briefs recorded yet.")
+        return
+    for r in rows:
+        print(
+            f"{r['generated_at']}  {r['briefing_id']:16} {r['status']:10} "
+            f"{r['text_path']}"
+        )
+
+
 def cmd_run(args) -> None:
     briefings = load_briefings()
     scheduler = BlockingScheduler()
@@ -111,6 +125,11 @@ def main() -> None:
     p_run.add_argument("--dry-run", action="store_true")
     p_run.add_argument("--no-audio", action="store_true")
     p_run.set_defaults(func=cmd_run)
+
+    p_hist = sub.add_parser("history", help="show recorded brief history (SQLite)")
+    p_hist.add_argument("--briefing", default=None)
+    p_hist.add_argument("--limit", type=int, default=20)
+    p_hist.set_defaults(func=cmd_history)
 
     args = parser.parse_args()
     args.func(args)
