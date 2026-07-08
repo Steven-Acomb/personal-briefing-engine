@@ -137,8 +137,11 @@ def run_briefing(
         # use the reliable default, not the audition knobs.
         audio_path, _ = synthesize_audio(text, audio_path)
 
-    # --- delivery ---
-    delivered = deliver(briefing.name, text_path, audio_path, briefing.delivery)
+    # --- delivery (dry runs must not clobber the real 'latest' pointer) ---
+    delivered = (
+        [] if dry_run
+        else deliver(briefing.name, text_path, audio_path, briefing.delivery)
+    )
 
     # --- record in history (not for dry runs) ---
     if not dry_run:
