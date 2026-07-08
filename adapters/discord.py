@@ -44,6 +44,24 @@ def _token(source: Source) -> str:
     return token
 
 
+def _label(source: Source, session: requests.Session, headers: dict) -> str:
+    """The label used in briefs. Uses source.display_name if set; otherwise
+    derives it from the channel name so a source needs only an identifier."""
+    if source.display_name:
+        return source.display_name
+    try:
+        r = session.get(
+            f"{API}/channels/{source.identifier}", headers=headers, timeout=20
+        )
+        if r.ok:
+            name = (r.json() or {}).get("name")
+            if name:
+                return f"discord/{name}"
+    except requests.RequestException:
+        pass
+    return f"discord/{source.identifier}"  # fallback if the channel lookup fails
+
+
 def fetch(
     source: Source,
     since: datetime,
@@ -62,6 +80,7 @@ def fetch(
     token = _token(source)
     sess = session or requests.Session()
     headers = {"Authorization": token, "User-Agent": USER_AGENT}
+    label = _label(source, sess, headers)  # display_name, or derived from the channel
     url = f"{API}/channels/{source.identifier}/messages"
 
     items: list[IngestedItem] = []
@@ -109,7 +128,7 @@ def fetch(
             author = m.get("author") or {}
             items.append(
                 IngestedItem(
-                    source=source.display_name,
+                    source=label,
                     content=content,
                     timestamp=ts,
                     meta={
@@ -147,7 +166,7 @@ def _main() -> None:
     parser.add_argument("channel_id")
     parser.add_argument("--hours", type=float, default=24.0)
     parser.add_argument(
-        "--name", default="discord/test", help="display_name for the source"
+        "--name", default=None, help="display_name override (default: auto-derive)"
     )
     args = parser.parse_args()
 
@@ -155,7 +174,7 @@ def _main() -> None:
         id="cli-test",
         platform=Platform.DISCORD,
         identifier=args.channel_id,
-        display_name=args.name,
+        display_name=args.name,  # None -> derived from the channel
         credentials_ref="DISCORD_USER_TOKEN",
     )
     since = datetime.now(timezone.utc) - timedelta(hours=args.hours)

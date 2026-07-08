@@ -58,12 +58,16 @@ class Source:
 
     `credentials_ref` is the NAME of an env var holding the secret, never the
     secret itself — see HANDOFF.md § Security.
+
+    `display_name` is OPTIONAL: leave it unset and the adapter derives a label
+    from the channel itself (e.g. "discord/<channel-name>"), so adding a source
+    needs only an identifier. Set it to override that label.
     """
 
     id: str
     platform: Platform
     identifier: str  # channel_id / chat_id / feed_url / query
-    display_name: str  # human label used in briefs, e.g. "telegram/chip-design"
+    display_name: str | None = None  # label used in briefs; auto-derived if unset
     credentials_ref: str | None = None
 
 

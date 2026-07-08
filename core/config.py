@@ -32,7 +32,7 @@ def load_sources(path: Path | None = None) -> dict[str, Source]:
             id=s["id"],
             platform=Platform(s["platform"]),
             identifier=s["identifier"],
-            display_name=s["display_name"],
+            display_name=s.get("display_name"),  # optional — adapter derives if unset
             credentials_ref=s.get("credentials_ref"),
         )
         sources[src.id] = src
