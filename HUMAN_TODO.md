@@ -1,11 +1,11 @@
 # HUMAN_TODO — things only you can do
 
 Checklist of things only you can do — get credentials and set up the environment.
+Applies to **any machine**; use it to get a fresh clone running.
 
-- **§1–5 are the general setup** and apply to **any machine** — use them to get a
-  fresh clone running on another computer.
-- **§6 is the Discord credentials** needed to run on real data (build-sequence
-  step 4).
+- **§1–3** — API keys, `.env`, Python environment (the general setup).
+- **§4** — smoke-test on fake data (no real ingestion needed).
+- **§5–6** — run on real data: Discord credentials + the real pipeline.
 
 Est. first-time setup: ~15 min, most of it waiting on account signup.
 
@@ -106,55 +106,42 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e .
 ```
 
-> Note: there's a stray `.venv/` in the repo from my scaffolding. It's
-> gitignored. If you use conda or uv, you can delete it.
-
 ---
 
-## 4. Run it
+## 4. Smoke test on fake data
 
-With the env active and `.env` filled in:
+With the env active and `.env` filled in, generate a brief from the built-in
+fake fixtures — no real ingestion needed. The text path needs only the Anthropic
+key; audio also needs the OpenAI key.
 
 ```bash
-# Written brief only — needs just the Anthropic key. Start here.
-python run_fake.py --no-audio
-
-# Written brief + audio you can play on THIS machine (paplay is installed):
-python run_fake.py --wav
-
-# Written brief + mp3 for your phone (default; no mp3 player on this box):
-python run_fake.py
+python run_fake.py --no-audio    # written brief only (text is the source of truth)
+python run_fake.py               # + audio as .mp3
+python run_fake.py --wav         # + audio as .wav (playable by paplay on Linux, if installed)
 ```
 
-Output lands in `briefs/` (gitignored): a `.md` (the written brief, source of
-truth) and, unless `--no-audio`, a `.wav`/`.mp3`.
+Output lands in `briefs/` (gitignored): a `.md` (the brief) and, unless
+`--no-audio`, a `.wav`/`.mp3`. Read it — if it's coherent, the core pipeline
+works and you're ready for real data (§6).
 
-Listen to a wav locally:
-
-```bash
-paplay briefs/daily-morning-<timestamp>.wav
-```
+Tuning: the whole synthesis behavior is driven by the `synthesis_instruction`
+field in **`config/briefings.toml`** — the cheapest place to iterate. Edit it,
+re-run, compare. (`core/fixtures.py` holds the fake messages if you want to
+stress different scenarios.)
 
 ---
 
-## 5. The actual point of step 2
+## 5. Run on real data
 
-Once it runs, **read the brief, then listen to the audio** (transfer the mp3 to
-your phone and play it on a walk — that's the real test per HANDOFF.md § Build
-sequence step 2).
-
-Then iterate: the whole synthesis behavior is driven by the
-`synthesis_instruction` field in **`config/briefings.toml`**. Edit that string,
-re-run, compare. This is the cheapest place to tune the product and where most
-of the iteration cost lives — no ingestion infrastructure needed. Tune the fake
-data in `core/fixtures.py` too if you want to stress different scenarios.
-
-When the output is genuinely worth listening to, we move to step 3 (real
-pipeline + scheduler) and step 4 (Discord/Telegram ingestion).
+Once §6 (Discord credentials) is done and `config/sources.toml` points at a real
+channel, run the real pipeline via the scheduler — see the **"Running it"**
+section of [README.md](README.md) for the `scheduler.py` commands
+(`list` / `once` / `run` / `history`). Current status and what's left to build
+are in [ROADMAP.md](ROADMAP.md).
 
 ---
 
-## 6. Real data — Discord (build-sequence step 4)
+## 6. Real data — Discord credentials
 
 To run on real Discord data instead of fake fixtures you provide two things: your
 **user token** (once) and the **channel ID** of each channel to aggregate.
