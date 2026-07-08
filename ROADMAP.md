@@ -22,21 +22,14 @@ just the things we've hit and consciously parked.
   male-leaning ones (alloy, ash, ballad, echo, fable, verse, onyx). Verdict: all
   "meh." `echo` (plain) was the least-bad → current default. The steerable
   `instructions` param changes delivery but didn't rescue it ("both meh").
-- **ElevenLabs** — much better voices, BUT:
-  - **API is subscription-only** — no pay-as-you-go door. Cheapest is Starter
-    ($5/mo, 30k credits ≈ ~12–15 full briefs/mo; a *daily* brief needs Creator
-    $22/mo or a Flash/Turbo model at ~0.5 credit/char).
-  - **Community "Voice Library" voices are blocked on the free API tier**
-    (HTTP 402 `paid_plan_required`). The owner picked a library voice
-    (`UgBBYS2sOqTuMpoF3BR0`) — it needs a paid plan.
-  - **Premade/built-in voices DO work on the free API tier** (Adam, Brian,
-    George, Daniel, …). Confirmed working. This is the current ElevenLabs
-    stopgap if we want better-than-OpenAI without paying — but the premade set
-    is limited and none is Ember.
-  - Owner declined a subscription.
+- **ElevenLabs — RULED OUT.** Voices are much better, but the API is
+  **subscription-only** (no pay-as-you-go), and the community "Voice Library"
+  voices (the ones the owner actually wanted) are **blocked on the free tier** —
+  they need a paid plan. Owner declined subscriptions **full stop**. The
+  ElevenLabs backend code was removed; `core/tts.py` is now OpenAI-only.
 
-**Usage-based (no-subscription, pay-per-character) alternatives to evaluate**
-— these are the real path to Ember-adjacent quality without a subscription:
+**Usage-based (no-subscription, pay-per-character) alternatives — the real path
+to Ember-adjacent quality when we revisit:**
 
 | Provider | Quality | Price | Free allowance | Setup |
 |---|---|---|---|---|
@@ -47,13 +40,12 @@ just the things we've hit and consciously parked.
 
 **Next actions when we revisit:**
 1. Trial **Deepgram Aura-2** (easiest, free $200 credit) and/or **Google Chirp 3
-   HD** (permanently free at our volume) as a new backend behind
-   `core/tts.py::synthesize_audio` — the seam already supports adding backends
-   (ElevenLabs was added that way).
+   HD** (permanently free at our volume) as an alternate backend inside
+   `core/tts.py`.
 2. Pick the best-sounding one, make it the default, keep `echo`-plain as the
    zero-setup fallback.
 
-**Design note:** `core/tts.py` is backend-pluggable. Adding a provider = one new
-`_synthesize_<provider>` function + a branch in `synthesize_audio`. Voice/model
-are env-configurable. So this issue is a "which provider" decision, not a
-rearchitecture.
+**Design note:** adding a provider is a new function + a small dispatch in
+`synthesize_audio` (currently OpenAI-only — the multi-backend seam was removed
+with ElevenLabs to avoid a framework with one backend; reintroduce it when the
+second provider lands). This is a "which provider" decision, not a rearchitecture.

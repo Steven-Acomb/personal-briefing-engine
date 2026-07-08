@@ -42,7 +42,7 @@ def main() -> None:
         "--voice",
         default=None,
         help="OpenAI TTS voice to try (alloy, ash, ballad, coral, echo, fable, "
-        "onyx, nova, sage, shimmer, verse). Default: echo. Implies --backend openai.",
+        "onyx, nova, sage, shimmer, verse). Default: echo.",
     )
     parser.add_argument(
         "--from",
@@ -55,21 +55,8 @@ def main() -> None:
     parser.add_argument(
         "--steer",
         action="store_true",
-        help="OpenAI only: apply the delivery instructions (tone/pacing). Default "
-        "is a plain, unsteered read (owner preferred plain). Output tagged '-plain'.",
-    )
-    parser.add_argument(
-        "--backend",
-        choices=["auto", "elevenlabs", "openai"],
-        default="openai",
-        help="TTS backend. Default: openai (echo-plain — see ROADMAP ISSUE-1). "
-        "elevenlabs = premade voices need --el-voice; auto = ElevenLabs if key set.",
-    )
-    parser.add_argument(
-        "--el-voice",
-        default=None,
-        metavar="VOICE_ID",
-        help="ElevenLabs voice id (overrides ELEVENLABS_VOICE_ID / default).",
+        help="apply the delivery instructions (tone/pacing). Default is a plain, "
+        "unsteered read (owner preferred plain). Output tagged '-plain'.",
     )
     args = parser.parse_args()
 
@@ -104,41 +91,16 @@ def main() -> None:
     if want_audio:
         from core.tts import INSTRUCTIONS, VOICE, synthesize_audio  # lazy: --no-audio needs no key
 
-        # A specific OpenAI voice implies the OpenAI path (unless backend forced).
-        backend = args.backend
-        if backend == "auto" and args.voice:
-            backend = "openai"
-
         voice = args.voice or VOICE
         instructions = INSTRUCTIONS if args.steer else ""  # default: plain
         ext = ".wav" if args.wav else ".mp3"
 
         # Filename tag so A/B comparisons don't overwrite each other.
-        if backend == "elevenlabs":
-            vid = args.el_voice or "envdefault"
-            tag = f"el-{vid[:10]}"
-        elif backend == "auto":
-            tag = "auto"  # renamed after the call to reflect what actually ran
-        else:  # openai
-            tag = voice if args.steer else f"{voice}-plain"
-
+        tag = voice if args.steer else f"{voice}-plain"
         audio_path = text_path.with_name(f"{text_path.stem}-{tag}{ext}")
-        print(f"Generating audio (backend: {backend})...")
-        audio_path, used = synthesize_audio(
-            text,
-            audio_path,
-            backend=backend,
-            voice=voice,
-            instructions=instructions,
-            el_voice_id=args.el_voice,
-        )
-        # In auto mode, rename to reflect what actually ran (elevenlabs vs fallback).
-        if backend == "auto" and used != "auto":
-            final = audio_path.with_name(
-                audio_path.name.replace(f"-auto{ext}", f"-{used}{ext}")
-            )
-            audio_path = audio_path.rename(final)
-        print(f"Audio written: {audio_path}  (backend used: {used})")
+        print(f"Generating audio (voice: {voice}{'' if args.steer else ', plain'})...")
+        audio_path = synthesize_audio(text, audio_path, voice=voice, instructions=instructions)
+        print(f"Audio written: {audio_path}")
         if args.wav:
             print(f"\nListen locally:  paplay '{audio_path}'")
         else:

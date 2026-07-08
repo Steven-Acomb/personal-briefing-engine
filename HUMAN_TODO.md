@@ -13,9 +13,10 @@ Est. first-time setup: ~15 min, most of it waiting on account signup.
 
 ## 1. Get two API keys
 
-These are **pay-per-use developer API keys**. They are NOT the same as a
-Claude Pro / ChatGPT Plus subscription — a subscription won't work here, and a
-key won't give you the chat apps. Each requires adding a payment method.
+These are **pay-per-use developer API keys** (no subscriptions). They are NOT
+the same as a Claude Pro / ChatGPT Plus subscription — a subscription won't work
+here, and a key won't give you the chat apps. Each requires adding a payment
+method.
 
 ### a) Anthropic API key — REQUIRED (text synthesis)
 
@@ -25,44 +26,23 @@ key won't give you the chat apps. Each requires adding a payment method.
 3. **API keys → Create Key**. Copy it (starts with `sk-ant-...`). You only see
    it once.
 
-Cost: this project uses `claude-opus-4-8`. One briefing from the fake data is a
-few thousand tokens in, a few hundred out — well under **$0.10 per run**. If you
-end up running briefings many times a day and want to cut cost, we can switch
-the synthesis model to `claude-sonnet-5` (cheaper) later; Opus is the default
-for best quality while we tune the prompt.
+Cost: this project uses `claude-opus-4-8`. One briefing is a few thousand tokens
+in, a few hundred out — well under **$0.10 per run**. If you end up running many
+times a day and want to cut cost, we can switch the synthesis model to
+`claude-sonnet-5` (cheaper) later; Opus is the default for best quality.
 
-### b) ElevenLabs API key — OPTIONAL but recommended (primary audio / TTS)
+### b) OpenAI API key — OPTIONAL (audio / TTS)
 
-This is the good-sounding voice path (much closer to the ChatGPT "Advanced
-Voice" quality). Only needed if you want the spoken brief; the written brief
-needs only the Anthropic key.
-
-1. Go to <https://elevenlabs.io>, sign up (there's a **free trial tier** — try
-   before paying).
-2. **Profile → API Keys → Create** (starts with `sk_...`). Put it in `.env` as
-   `ELEVENLABS_API_KEY`.
-3. **Pick your voice** — this is the whole reason we added ElevenLabs. Browse
-   the Voice Library in their app, find one you like (search for warm/narration
-   male voices if you're chasing the Ember feel), and copy its **Voice ID** into
-   `.env` as `ELEVENLABS_VOICE_ID`. Leave it blank to use the default ("Brian",
-   a warm male narrator). Optionally set `ELEVENLABS_MODEL` — `eleven_v3` is the
-   most expressive; default is `eleven_multilingual_v2` (stable, high quality).
-
-### c) OpenAI API key — OPTIONAL (fallback audio only)
-
-Used only as the fallback voice (`echo`, plain) when no ElevenLabs key is set.
-Skip it if you're going with ElevenLabs.
+Only needed for the spoken audio brief; the written brief needs only the
+Anthropic key. Audio uses OpenAI's `gpt-4o-mini-tts` with the `echo` voice
+(plain). (ElevenLabs was evaluated and ruled out — subscription-only. The future
+better-voice path is a usage-based provider like Deepgram/Google — see ROADMAP.)
 
 1. Go to <https://platform.openai.com>, sign in / sign up.
 2. **Settings → Billing → add a payment method** (~$5 credit is plenty).
 3. **API keys → Create new secret key** (starts with `sk-...`).
 
-Cost: OpenAI TTS (`gpt-4o-mini-tts`) is a fraction of a cent per brief.
-ElevenLabs pricing is per-character — check their current tiers; a daily brief
-is modest but not free like OpenAI.
-
-> Later sources (Discord, Telegram) will need their own credentials. Ignore
-> those for now — step 2 is fake data only. See HANDOFF.md § Security.
+Cost: OpenAI TTS is a fraction of a cent per brief.
 
 ---
 
@@ -82,23 +62,13 @@ lines:
 
 ```
 ANTHROPIC_API_KEY=sk-ant-...
-ELEVENLABS_API_KEY=sk_...
-ELEVENLABS_VOICE_ID=
-ELEVENLABS_MODEL=
 OPENAI_API_KEY=sk-...
 DISCORD_USER_TOKEN=
 ```
 
 - `ANTHROPIC_API_KEY` — **required** (text synthesis).
-- `ELEVENLABS_API_KEY` — primary audio voice (optional; recommended for quality).
-- `ELEVENLABS_VOICE_ID` / `ELEVENLABS_MODEL` — optional; blank = "Brian" /
-  `eleven_multilingual_v2` defaults.
-- `OPENAI_API_KEY` — only for the fallback voice (`echo`), used when no
-  ElevenLabs key is set.
+- `OPENAI_API_KEY` — audio (the `echo` voice). Skip if you only want text briefs.
 - `DISCORD_USER_TOKEN` — for real data; see §6. Leave blank until then.
-
-Audio backend picks itself: if `ELEVENLABS_API_KEY` is set it uses ElevenLabs,
-otherwise it falls back to OpenAI's `echo` voice (needs `OPENAI_API_KEY`).
 
 ---
 

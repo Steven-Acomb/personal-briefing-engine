@@ -5,8 +5,7 @@ description = "A reduced layer over multiple information sources that boils them
 requires-python = ">=3.11"      # tomllib is stdlib from 3.11
 dependencies = [
     "anthropic>=0.116",   # synthesis
-    "elevenlabs>=1.0",    # TTS (primary backend)
-    "openai>=2.0",        # TTS (fallback backend: echo-plain)
+    "openai>=2.0",        # TTS (echo-plain)
     "python-dotenv>=1.0", # load secrets from .env
     "APScheduler>=3.10,<4", # scheduling (3.x BlockingScheduler/CronTrigger API)
     "requests>=2.31",     # Discord REST adapter

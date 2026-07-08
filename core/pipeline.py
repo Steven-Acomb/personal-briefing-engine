@@ -56,6 +56,7 @@ def gather_items(
         if src is None:
             print(f"[gather] unknown source_id {sc.source_id!r}; skipping")
             continue
+        label = src.display_name or src.id  # display_name may be auto-derived at fetch
 
         watermark = store.get_watermark(briefing.name, sc.source_id)
         since = max(floor, watermark) if watermark else floor
@@ -68,11 +69,11 @@ def gather_items(
             else:
                 print(
                     f"[gather] no adapter for {src.platform.value} yet "
-                    f"({src.display_name}); skipping"
+                    f"({label}); skipping"
                 )
                 continue
         except Exception as e:  # noqa: BLE001 — one source shouldn't kill the run
-            print(f"[gather] {src.display_name}: fetch failed ({e}); skipping")
+            print(f"[gather] {label}: fetch failed ({e}); skipping")
             continue
 
         if watermark:  # strictly after last-covered — don't re-summarize the boundary msg
@@ -86,7 +87,9 @@ def gather_items(
             newest = max((it.timestamp for it in fetched), default=None)
             store.set_watermark(briefing.name, sc.source_id, newest)
 
-        print(f"[gather] {src.display_name}: {len(fetched)} item(s) since {since:%m-%d %H:%M}")
+        # the real (possibly auto-derived) label is on the fetched items
+        shown = fetched[0].source if fetched else label
+        print(f"[gather] {shown}: {len(fetched)} item(s) since {since:%m-%d %H:%M}")
         items += fetched
 
     return items
@@ -133,9 +136,8 @@ def run_briefing(
         from core.tts import synthesize_audio  # lazy
 
         audio_path = text_path.with_suffix(".mp3")
-        # Default backend/voice per ROADMAP ISSUE-1 (echo-plain). Scheduled runs
-        # use the reliable default, not the audition knobs.
-        audio_path, _ = synthesize_audio(text, audio_path)
+        # Default voice is OpenAI echo, plain (see ROADMAP ISSUE-1).
+        audio_path = synthesize_audio(text, audio_path)
 
     # --- delivery (dry runs must not clobber the real 'latest' pointer) ---
     delivered = (

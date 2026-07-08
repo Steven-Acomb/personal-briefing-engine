@@ -18,7 +18,7 @@ core/
   config.py       # load config/*.toml into the ontology
   fixtures.py     # hand-made fake IngestedItems (step-2/3 validation)
   synthesize.py   # Claude synthesis — cross-source pass
-  tts.py          # text -> audio (OpenAI echo-plain default; ElevenLabs backend)
+  tts.py          # text -> audio (OpenAI echo-plain; see ROADMAP ISSUE-1)
   delivery.py     # local file drop (email / web page later)
   store.py        # SQLite: brief history + per-source watermark (text stays as files)
   pipeline.py     # run one briefing end-to-end: gather -> synth -> tts -> deliver
