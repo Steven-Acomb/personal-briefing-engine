@@ -30,14 +30,32 @@ numbers, or links that are not present.
 "here is your briefing" framing."""
 
 
-def _render_items(items: list[IngestedItem]) -> str:
-    """Render items into a compact, source-tagged block for the prompt."""
-    lines = []
+def _render_items(
+    items: list[IngestedItem], source_contexts: dict[str, str] | None = None
+) -> str:
+    """Render items grouped BY SOURCE, each block headed by the source and — when
+    one is set — that source's interpretive context, so the model reads each
+    source's messages through the right lens. The gloss sits with the content it
+    explains, not in a global preamble. Within a block, messages are chronological.
+    """
+    source_contexts = source_contexts or {}
+    groups: dict[str, list[IngestedItem]] = {}
     for it in sorted(items, key=lambda i: i.timestamp):
-        author = it.meta.get("author", "unknown")
-        ts = it.timestamp.strftime("%Y-%m-%d %H:%M UTC")
-        lines.append(f"[{it.source}] ({author}, {ts})\n{it.content}")
-    return "\n\n".join(lines)
+        groups.setdefault(it.source, []).append(it)
+
+    blocks = []
+    for source, group in groups.items():
+        ctx = (source_contexts.get(source) or "").strip()
+        header = f"Messages from {source}"
+        if ctx:  # omit cleanly when this source has no context
+            header += f" (context: {ctx})"
+        lines = [header + ":"]
+        for it in group:
+            author = it.meta.get("author", "unknown")
+            ts = it.timestamp.strftime("%Y-%m-%d %H:%M UTC")
+            lines.append(f"({author}, {ts})\n{it.content}")
+        blocks.append("\n".join(lines))
+    return "\n\n".join(blocks)
 
 
 def synthesize(
@@ -45,6 +63,7 @@ def synthesize(
     items: list[IngestedItem],
     period: tuple[datetime, datetime] | None = None,
     client: anthropic.Anthropic | None = None,
+    source_contexts: dict[str, str] | None = None,
 ) -> str:
     """Generate the written brief for `briefing` from `items`. Returns markdown/
     script text. Raises if there are no items to synthesize."""
@@ -65,7 +84,7 @@ def synthesize(
         f"BRIEFING: {briefing.name}\n"
         f"{window}\n"
         f"BRIEFING INSTRUCTION:\n{briefing.synthesis_instruction}\n\n"
-        f"MESSAGES ({len(items)}):\n{_render_items(items)}"
+        f"MESSAGES ({len(items)}):\n{_render_items(items, source_contexts)}"
     )
 
     response = client.messages.create(

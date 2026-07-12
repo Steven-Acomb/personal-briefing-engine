@@ -62,6 +62,16 @@ class Source:
     `display_name` is OPTIONAL: leave it unset and the adapter derives a label
     from the channel itself (e.g. "discord/<channel-name>"), so adding a source
     needs only an identifier. Set it to override that label.
+
+    `context` is OPTIONAL interpretive context about what this source *is*, fed
+    into the synthesis prompt alongside this source's own messages so briefs read
+    it correctly (e.g. "Private Discord among close friends; mostly social banter,
+    occasional real logistics buried in it" or "arXiv cs.AR firehose; each item is
+    an independent paper, not conversation"). It is intrinsic to the source —
+    true regardless of which briefing consumes it — so it lives here, not on
+    SourceConfig, and is written once and reused everywhere the source is pooled.
+    This is input-side interpretation only; it does NOT shape output tone/length
+    (that's the Briefing's `synthesis_instruction`).
     """
 
     id: str
@@ -69,6 +79,7 @@ class Source:
     identifier: str  # channel_id / chat_id / feed_url / query
     display_name: str | None = None  # label used in briefs; auto-derived if unset
     credentials_ref: str | None = None
+    context: str = ""  # interpretive gloss injected into synthesis (see above)
 
 
 @dataclass

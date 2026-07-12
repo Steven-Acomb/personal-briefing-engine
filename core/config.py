@@ -34,6 +34,7 @@ def load_sources(path: Path | None = None) -> dict[str, Source]:
             identifier=s["identifier"],
             display_name=s.get("display_name"),  # optional — adapter derives if unset
             credentials_ref=s.get("credentials_ref"),
+            context=s.get("context", ""),  # optional interpretive context for synthesis
         )
         sources[src.id] = src
     return sources

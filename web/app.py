@@ -14,7 +14,7 @@ from flask import Flask, flash, redirect, render_template, request, url_for
 from core import config as cfg
 from core import config_edit as ce
 
-_SOURCE_KEYS = ("id", "platform", "identifier", "display_name", "credentials_ref")
+_SOURCE_KEYS = ("id", "platform", "identifier", "display_name", "credentials_ref", "context")
 
 
 def _source_to_dict(src) -> dict:
@@ -24,6 +24,7 @@ def _source_to_dict(src) -> dict:
         "identifier": src.identifier,
         "display_name": src.display_name or "",
         "credentials_ref": src.credentials_ref or "",
+        "context": src.context or "",
     }
 
 

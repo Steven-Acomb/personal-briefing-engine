@@ -73,6 +73,14 @@ def _find_index(arr, key: str, value: str) -> int | None:
     return None
 
 
+def _str_value(text: str):
+    """A TOML string item: multiline triple-quoted if it spans lines (a basic
+    string can't hold a literal newline), otherwise a plain quoted string."""
+    if "\n" in text:
+        return tomlkit.string("\n" + text.strip("\n") + "\n", multiline=True)
+    return text
+
+
 def _atomic_write(path: Path, doc: TOMLDocument, validate) -> None:
     """Serialize `doc` to a temp file, run `validate(temp_path)` (raises to
     reject), then atomically replace `path`. The original is untouched on error."""
@@ -135,6 +143,7 @@ def upsert_source(fields: dict, *, original_id: str | None = None) -> None:
         raise ConfigError(f"platform must be one of {VALID_PLATFORMS}, got {platform!r}.")
     display_name = (fields.get("display_name") or "").strip()
     credentials_ref = (fields.get("credentials_ref") or "").strip()
+    context = (fields.get("context") or "").strip()
 
     doc = _load_doc(SOURCES_PATH)
     arr = _aot(doc, "source")
@@ -152,6 +161,8 @@ def upsert_source(fields: dict, *, original_id: str | None = None) -> None:
         if display_name:
             tbl["display_name"] = display_name
         tbl["credentials_ref"] = credentials_ref
+        if context:
+            tbl["context"] = _str_value(context)
         arr.append(tbl)
     else:
         idx = _find_index(arr, "id", original_id)
@@ -166,6 +177,10 @@ def upsert_source(fields: dict, *, original_id: str | None = None) -> None:
         elif "display_name" in tbl:
             del tbl["display_name"]
         tbl["credentials_ref"] = credentials_ref
+        if context:
+            tbl["context"] = _str_value(context)
+        elif "context" in tbl:
+            del tbl["context"]
 
     _atomic_write(SOURCES_PATH, doc, _validate_sources_file)
 

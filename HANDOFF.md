@@ -69,6 +69,9 @@ Source
   identifier:      channel_id / chat_id / feed_url / query / ...
   display_name:    human label, used in briefs ("telegram/chip-design")
   credentials_ref: pointer to a secret, NOT the secret itself
+  context:         optional interpretive gloss on what the source IS, injected
+                   into synthesis alongside this source's messages (input-side
+                   interpretation; NOT output tone — that's synthesis_instruction)
 ```
 
 ### Briefing

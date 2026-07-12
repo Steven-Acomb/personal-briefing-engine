@@ -4,6 +4,11 @@
 # `credentials_ref` is the NAME of an env var holding the secret, NEVER the
 # secret itself. See HANDOFF.md § Security.
 #
+# `context` (optional) is interpretive context about what the source IS — fed
+# into synthesis alongside this source's messages so briefs read it correctly.
+# It's input-side interpretation, NOT output tone/length (that's the briefing's
+# synthesis_instruction). Intrinsic to the source, so it's set once here.
+#
 # NOTE: the entries below are FAKE placeholders for step-1/step-2 development.
 # Swap in real channel_id / chat_id values when wiring real adapters (step 4).
 
@@ -13,6 +18,7 @@ platform = "discord"
 identifier = "000000000000000001"        # fake channel_id
 display_name = "discord/chip-design"
 credentials_ref = "DISCORD_USER_TOKEN"
+context = "Working Discord channel for chip-design engineers; technical shop-talk, tool issues, tapeout logistics."
 
 [[source]]
 id = "telegram-ee-group"

@@ -32,6 +32,7 @@ class GatherResult:
 
     items: list[IngestedItem] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    contexts: dict[str, str] = field(default_factory=dict)  # source label -> interpretive context
 
 
 @dataclass
@@ -64,6 +65,7 @@ def gather_items(
     floor = now - briefing.lookback
     items: list[IngestedItem] = []
     errors: list[str] = []
+    contexts: dict[str, str] = {}
 
     for sc in briefing.sources:
         src = sources.get(sc.source_id)
@@ -114,8 +116,11 @@ def gather_items(
         shown = fetched[0].source if fetched else label
         obs.tee(f"[gather] {shown}: {len(fetched)} item(s) since {since:%m-%d %H:%M}")
         items += fetched
+        # keep the source's interpretive context keyed by the label its items carry
+        if fetched and src.context:
+            contexts[shown] = src.context
 
-    return GatherResult(items=items, errors=errors)
+    return GatherResult(items=items, errors=errors, contexts=contexts)
 
 
 def run_briefing(
@@ -176,7 +181,9 @@ def run_briefing(
         from core.synthesize import synthesize  # lazy: dry runs need no API key
 
         period = (min(i.timestamp for i in items), max(i.timestamp for i in items))
-        text = synthesize(briefing, items, period=period)
+        text = synthesize(
+            briefing, items, period=period, source_contexts=gathered.contexts
+        )
     text_path.write_text(text, encoding="utf-8")
 
     # --- audio (derived) ---

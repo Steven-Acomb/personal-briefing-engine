@@ -39,6 +39,12 @@
       <small>Env-var <em>name</em> holding the secret — never the value itself.</small>
     </label>
 
+    <label>Context
+      <textarea name="context" rows="3"
+        placeholder="e.g. Private Discord among close friends; mostly social banter, occasional real logistics buried in it">{{ source.context }}</textarea>
+      <small>Explains what this source is; fed to synthesis so briefs interpret it correctly. Not tone/length — that's the briefing's instruction.</small>
+    </label>
+
     <div class="form-actions">
       <button class="btn btn-primary" type="submit">Save</button>
       <a class="btn" href="{{ url_for('dashboard') }}">Cancel</a>

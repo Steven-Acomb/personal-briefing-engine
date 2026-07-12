@@ -77,8 +77,17 @@ def main() -> None:
             min(i.timestamp for i in items),
             max(i.timestamp for i in items),
         )
+        # best-effort: attach any configured source contexts whose label matches
+        # a fixture's source (fixtures are labeled like a source's display_name)
+        from core.config import load_sources
+
+        contexts = {
+            s.display_name: s.context
+            for s in load_sources().values()
+            if s.display_name and s.context
+        }
         print(f"Synthesizing '{briefing.name}' from {len(items)} fake items...")
-        text = synthesize(briefing, items, period=period)
+        text = synthesize(briefing, items, period=period, source_contexts=contexts)
 
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         BRIEFS_DIR.mkdir(exist_ok=True)
