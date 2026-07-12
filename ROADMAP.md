@@ -127,7 +127,6 @@ and the Discord normalizer against a captured API payload fixture.
 - No thread / forum-channel support.
 - One channel per source (no server-wide ingestion).
 - 429 handling **raises** rather than backing off / retrying.
-- `channel_filter` in SourceConfig is defined but unused (no sub-channel filtering).
 
 ## ISSUE-6: Secret / token lifecycle (OPEN)
 
@@ -144,8 +143,6 @@ fix later: feed the prior brief (or a summary of it) into the synthesis prompt.
 
 ## ISSUE-8: Undecided design questions (from HANDOFF)
 
-- **Topic tagging** — `IngestedItem.topic_tags` exists but is never populated;
-  no tagging at ingestion or synthesis time. Undecided whether it's worth it.
 - **Pre-filter vs. synthesis-filter policy** — both mechanisms exist
   (`keyword_filter` pre-filters; Claude also filters in the prompt). No decision
   on how much to lean on each (tokens/cost vs. control).

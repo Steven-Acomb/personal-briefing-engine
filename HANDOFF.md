@@ -93,7 +93,6 @@ Per-briefing filtering of a source.
 SourceConfig
   source_id
   briefing_id
-  channel_filter:  [optional sub-channels — e.g. only #chip-design, #papers]
   keyword_filter:  [optional]
 ```
 
@@ -117,7 +116,6 @@ IngestedItem
   source:      "telegram/chip-design-group"   (display_name)
   content:     str
   timestamp:   datetime
-  topic_tags:  [str]    (optional; can be added at synthesis time instead)
   meta:        {author, link_back, ...}   (optional, for citations/links)
 ```
 
@@ -177,7 +175,6 @@ This tool touches the owner's personal accounts. Handle accordingly:
 - Storage for `Brief` history — flat files vs. SQLite? (SQLite probably, low cost, queryable.)
 - Delivery default for v1 — email vs. local file drop vs. tiny local web page hittable from phone?
 - How much per-source pre-filtering before synthesis vs. letting Claude do the filtering in the synthesis pass? (Trade tokens vs. control.)
-- Topic tagging: at ingestion or at synthesis time?
 - Voice/format of the audio brief — single-narrator script is the obvious start.
 
 ---

@@ -80,7 +80,6 @@ class SourceConfig:
     """
 
     source_id: str
-    channel_filter: list[str] = field(default_factory=list)  # optional sub-channels
     keyword_filter: list[str] = field(default_factory=list)
 
 
@@ -122,7 +121,6 @@ class IngestedItem:
     source: str  # display_name of the originating Source
     content: str
     timestamp: datetime
-    topic_tags: list[str] = field(default_factory=list)  # optional; may be set at synthesis
     meta: dict = field(default_factory=dict)  # {author, link_back, ...} for citations/links
 
 

@@ -49,7 +49,6 @@ def load_briefings(path: Path | None = None) -> list[Briefing]:
         sources = [
             SourceConfig(
                 source_id=sc["source_id"],
-                channel_filter=sc.get("channel_filter", []),
                 keyword_filter=sc.get("keyword_filter", []),
             )
             for sc in b.get("source", [])

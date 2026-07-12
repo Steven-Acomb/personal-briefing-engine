@@ -25,7 +25,6 @@ context.
 
   [[briefing.source]]
   source_id = "discord-chip-design"
-  channel_filter = []                  # empty = whole source
   keyword_filter = []
 
   [[briefing.source]]
