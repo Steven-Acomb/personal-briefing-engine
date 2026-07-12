@@ -73,9 +73,9 @@ runs `scheduler.py once`; the server holds no run state).
 
 ## Remaining build-sequence work (planned, not blockers)
 
-- **Telegram adapter** — last chat source. Telethon userbot; heavier setup than
-  Discord (API id/hash + interactive login → `.session` file). Slots into the
-  same `gather_items` dispatch.
+- **Telegram adapter** — BUILT (`adapters/telegram.py`, Telethon userbot; wired
+  into `gather_items`). Pending the owner's one-time setup: API id/hash + login
+  (HUMAN_TODO §7). Not yet validated end-to-end against a real chat.
 - **Research/news adapters** — arXiv, RSS, HN. Read-only, no auth. Where the
   source ontology's generality pays off.
 - **Wire up real briefings** — point config at actual channels + schedules.
