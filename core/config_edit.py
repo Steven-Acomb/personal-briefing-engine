@@ -73,9 +73,17 @@ def _find_index(arr, key: str, value: str) -> int | None:
     return None
 
 
+def _norm(text: str) -> str:
+    r"""Normalize line endings to LF. Browsers submit textareas with CRLF, and a
+    stray '\r' is rejected by the strict TOML reader when we re-parse to validate
+    (\"Illegal character '\r'\"). Written config uses LF throughout."""
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
 def _str_value(text: str):
     """A TOML string item: multiline triple-quoted if it spans lines (a basic
     string can't hold a literal newline), otherwise a plain quoted string."""
+    text = _norm(text)
     if "\n" in text:
         return tomlkit.string("\n" + text.strip("\n") + "\n", multiline=True)
     return text
@@ -143,7 +151,7 @@ def upsert_source(fields: dict, *, original_id: str | None = None) -> None:
         raise ConfigError(f"platform must be one of {VALID_PLATFORMS}, got {platform!r}.")
     display_name = (fields.get("display_name") or "").strip()
     credentials_ref = (fields.get("credentials_ref") or "").strip()
-    context = (fields.get("context") or "").strip()
+    context = _norm(fields.get("context") or "").strip()
 
     doc = _load_doc(SOURCES_PATH)
     arr = _aot(doc, "source")
@@ -249,7 +257,7 @@ def _apply_briefing_fields(tbl, fields: dict, source_rows: list[dict]) -> None:
     tbl["output"] = outputs
     tbl["delivery"] = delivery
 
-    instruction = _req(fields, "synthesis_instruction")
+    instruction = _norm(_req(fields, "synthesis_instruction"))
     # multiline triple-quoted string, matching the hand-authored style
     tbl["synthesis_instruction"] = tomlkit.string(
         "\n" + instruction.strip("\n") + "\n", multiline=True
