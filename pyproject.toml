@@ -11,8 +11,8 @@ dependencies = [
     "requests>=2.31",     # Discord REST adapter
     "Flask>=3.0",         # localhost authoring/ops web UI (web/)
     "tomlkit>=0.12",      # comment-preserving TOML round-trip for the config editor
+    "Telethon>=1.36",     # Telegram userbot adapter (MTProto, user account)
     # Added as each later subsystem lands:
-    #   telethon          — Telegram userbot adapter
     #   arxiv, feedparser — research/news adapters
 ]
 

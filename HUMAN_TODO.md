@@ -192,6 +192,71 @@ adapter is wired into the pipeline.
 
 ---
 
+## 7. Real data — Telegram credentials (heavier setup than Discord)
+
+Telegram doesn't use a copy-paste token. You register an app to get an
+**API id + hash**, then do a **one-time interactive login** (your phone number →
+a code Telegram texts you → your 2FA password if you have one). That login
+creates a `*.session` file the adapter reuses afterward, including from the
+scheduled 7 AM run. The session file is a live auth artifact — **gitignored, never
+commit it** (HANDOFF § Security). Like Discord, this reads your own account's
+chats (an MTProto userbot); the risk is to your own account, accepted per HANDOFF.
+
+### a) Get your API id + hash  (SENSITIVE)
+
+1. Go to <https://my.telegram.org> and log in with your phone number + the code.
+2. Open **API development tools**, create an app (any title/short-name, platform
+   "Desktop" is fine).
+3. Copy the **`api_id`** (a number) and **`api_hash`** (a long hex string).
+
+### b) Put them in `.env`
+
+The lines already exist in `.env.example`; fill in the first two (leave
+`TELEGRAM_SESSION` as `briefing` unless you want a different session name). No
+trailing `# comments` on value lines.
+
+```
+TELEGRAM_API_ID=1234567
+TELEGRAM_API_HASH=<hex string>
+TELEGRAM_SESSION=briefing
+```
+
+### c) One-time login (interactive — creates the session)
+
+```bash
+python -m adapters.telegram login
+```
+
+It prompts for your phone (international format, e.g. `+1...`), the code Telegram
+sends you, and your 2FA password if set. On success it writes `briefing.session`
+in the repo root and prints who you logged in as. You only do this once (re-run
+if the session ever expires — you'll see a "session not authorized" error).
+
+### d) Find the chat id(s) you want
+
+```bash
+python -m adapters.telegram list
+```
+
+Prints every chat your account is in as `chat_id / @username / title`. Note the
+`chat_id` (or the `@username` if it has one) of each chat you want to aggregate.
+
+### e) Validate a chat (read-only, no cost)
+
+```bash
+python -m adapters.telegram fetch <chat_id or @username> --hours 24
+```
+
+Confirms the login + chat work before wiring it into a briefing.
+
+### f) Add the source
+
+In the web UI (or `config/sources.toml`): a source with **platform `telegram`**,
+**identifier** = the chat id or `@username`, and **credentials_ref** =
+`TELEGRAM_SESSION`. Then add it to a briefing like any other source.
+
+---
+
 ## Troubleshooting
 
 - **`anthropic.AuthenticationError` / 401** — key missing or wrong in `.env`, or
@@ -210,3 +275,11 @@ adapter is wired into the pipeline.
   and caps its requests).
 - **Discord token but `Missing ... env var`** — the `DISCORD_USER_TOKEN` line has
   a trailing `# comment` (breaks parsing) or `.env` isn't in the repo root.
+- **Telegram `Missing ... credentials`** — `TELEGRAM_API_ID` / `TELEGRAM_API_HASH`
+  not set in `.env` (get them from <https://my.telegram.org>, §7a).
+- **Telegram `session not authorized`** — you haven't logged in yet, or the
+  session expired. Run `python -m adapters.telegram login` (§7c).
+- **Telegram `could not resolve chat`** — wrong id, or the account isn't in that
+  chat. Prefer the `@username`; use `python -m adapters.telegram list` to find it.
+- **Telegram login asks endlessly / `FloodWait`** — too many attempts; wait it
+  out. Make sure the phone number is in international format (`+1...`).

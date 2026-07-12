@@ -86,6 +86,10 @@ def gather_items(
                 from adapters import discord as discord_adapter  # lazy
 
                 fetched = discord_adapter.fetch(src, since)
+            elif src.platform is Platform.TELEGRAM:
+                from adapters import telegram as telegram_adapter  # lazy
+
+                fetched = telegram_adapter.fetch(src, since)
             else:
                 # No adapter yet is an expected gap, not a failure — skip quietly.
                 obs.tee(
