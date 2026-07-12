@@ -70,8 +70,10 @@ just pins Python and installs from it.
 # dev / audition on fake data (tune the synthesis prompt, try voices)
 python run_fake.py                 # + audio;  --no-audio = text only;  --wav = local-playable
 
-# validate a Discord channel in isolation (read-only, no cost)
+# validate a source in isolation (read-only, no cost)
 python -m adapters.discord <channel_id> --hours 24
+python -m adapters.telegram fetch <chat_id|@username> --hours 24   # after one-time login (HUMAN_TODO §7)
+python -m adapters.rss <feed_url> --hours 48                       # RSS/Atom: no auth needed
 
 # real pipeline (needs DISCORD_USER_TOKEN in .env + a real channel in config/sources.toml)
 python scheduler.py list                    # briefings + next fire times
@@ -139,7 +141,9 @@ core/
   pipeline.py     # run one briefing end-to-end: gather -> synth -> tts -> deliver
   config_edit.py  # comment-preserving, atomic, validated TOML writer (web UI's write path)
 adapters/
-  discord.py      # user-token REST history -> IngestedItem  (telegram/rss/hn: not built)
+  discord.py      # Discord user-token REST history -> IngestedItem
+  telegram.py     # Telegram (Telethon userbot) -> IngestedItem
+  rss.py          # generic RSS/Atom (blogs, Substacks, trade press, …) -> IngestedItem  (arxiv/hn: not built)
 web/              # localhost authoring UI (Flask): edit sources/briefings; python -m web
 config/
   sources.toml    # where to read from (ships with one neutral example; add real channels)

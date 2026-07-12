@@ -103,10 +103,12 @@ signal ÷ risk ÷ effort.
 
 ### Tier 1 — build now (high signal, low risk, fixes the volume problem)
 
-1. **Generic RSS adapter** — the highest-leverage single build. `feedparser`, each
-   entry = one `IngestedItem`. One adapter unlocks blogs, Substacks, trade press
-   (Semiconductor Engineering, EE Times, IEEE Spectrum), podcasts, per-channel
-   YouTube, Mastodon, Lobsters — all public, near-zero risk. **Do this first.**
+1. **Generic RSS adapter** — DONE (`adapters/rss.py`, `feedparser` + requests;
+   wired into `gather_items`; validated against real feeds 2026-07-12). One
+   adapter unlocks blogs, Substacks (`/feed`), trade press (Semiconductor
+   Engineering, EE Times, IEEE Spectrum), podcasts, per-channel YouTube, Mastodon,
+   Lobsters. v0 notes: entries need a parseable pubdate (dateless entries skipped);
+   each entry's text is capped at 2000 chars to bound the prompt.
 2. **Gmail-label newsletter adapter** — point it at a Gmail label you route
    newsletters into; the inbox becomes a universal newsletter aggregator (catches
    email-only surface that RSS misses: industry digests, Scholar alerts, email

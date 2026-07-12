@@ -26,3 +26,13 @@ platform = "telegram"
 identifier = "-1000000000001"            # fake chat_id
 display_name = "telegram/ee-group"
 credentials_ref = "TELEGRAM_SESSION"
+
+# RSS/Atom needs NO credentials (public). identifier = the feed URL. Works for
+# blogs, Substacks (append /feed), trade press, podcasts, per-channel YouTube, etc.
+# Feed entries are independent items — use keyword_filter on the BRIEFING side to
+# pre-trim volume before synthesis (see ROADMAP § Adapter roadmap).
+[[source]]
+id = "hn-frontpage"
+platform = "rss"
+identifier = "https://news.ycombinator.com/rss"
+context = "Hacker News front page; each item is an independent story, not conversation."

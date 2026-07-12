@@ -90,6 +90,10 @@ def gather_items(
                 from adapters import telegram as telegram_adapter  # lazy
 
                 fetched = telegram_adapter.fetch(src, since)
+            elif src.platform is Platform.RSS:
+                from adapters import rss as rss_adapter  # lazy
+
+                fetched = rss_adapter.fetch(src, since)
             else:
                 # No adapter yet is an expected gap, not a failure — skip quietly.
                 obs.tee(
