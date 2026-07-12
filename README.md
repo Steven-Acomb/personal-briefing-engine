@@ -88,6 +88,43 @@ Output → `briefs/` (gitignored): timestamped `.md`/`.mp3` plus a stable
 
 ---
 
+## Web editor
+
+A localhost UI for editing your sources and briefings in a browser instead of
+hand-editing TOML. It's just another editor of the same `config/*.toml` files —
+not a separate config store, and **not** the scheduler (cron still runs the
+briefings; see ROADMAP ISSUE-2).
+
+```bash
+python -m web            # http://127.0.0.1:8765
+python -m web --port N   # different port
+```
+
+Open <http://127.0.0.1:8765> and you get a dashboard of every briefing and
+source with **New / Edit / Delete**:
+
+- **Sources** — id, platform, identifier (channel/chat id, feed url…),
+  display name (blank = auto-derived, e.g. `discord/<channel>`), credentials ref
+  (the env-var *name*, never the secret), and **context** (a sentence or two on
+  what the source *is* — fed into synthesis so briefs interpret it correctly).
+- **Briefings** — name, cron schedule, lookback window, output (text/audio),
+  delivery, the `synthesis_instruction`, and one or more sources to pool (add /
+  remove rows, each with an optional keyword filter).
+
+Notes:
+- **Localhost only.** It binds to `127.0.0.1` and is never exposed to the LAN or
+  internet — it reads config that references your Discord token by env-var name.
+  Don't put it behind a public reverse proxy.
+- **Safe writes.** Saves are validated and atomic: the file is written only if it
+  parses back cleanly (bad cron / duplicate id / missing field are rejected with
+  the original untouched), and comments/formatting in your TOML are preserved. So
+  hand-edits and UI-edits coexist, and a save can't corrupt a briefing mid-run.
+- **Deleting a source that a briefing still uses is blocked** — remove it from the
+  briefing first.
+- Changes take effect on the next run; the app doesn't need a restart.
+
+---
+
 ## Layout
 
 ```
