@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if original_id else 'New' }} source{% endblock %}
+{% block content %}
+
+<section class="panel form-panel">
+  <div class="panel-head"><h2>{{ 'Edit' if original_id else 'New' }} source</h2></div>
+
+  <form method="post" action="{{ url_for('source_save') }}" class="form">
+    <input type="hidden" name="original_id" value="{{ original_id }}">
+
+    <label>ID <span class="req">*</span>
+      <input name="id" value="{{ source.id }}" required
+             placeholder="discord-friends" autocomplete="off">
+      <small>Stable key referenced by briefings.</small>
+    </label>
+
+    <label>Platform <span class="req">*</span>
+      <select name="platform" required>
+        <option value="" disabled {{ 'selected' if not source.platform }}>choose…</option>
+        {% for p in platforms %}
+          <option value="{{ p }}" {{ 'selected' if source.platform == p }}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Identifier <span class="req">*</span>
+      <input name="identifier" value="{{ source.identifier }}" required
+             placeholder="channel_id / chat_id / feed_url" autocomplete="off">
+    </label>
+
+    <label>Display name
+      <input name="display_name" value="{{ source.display_name }}"
+             placeholder="(leave blank to auto-derive, e.g. discord/&lt;channel&gt;)" autocomplete="off">
+    </label>
+
+    <label>Credentials ref
+      <input name="credentials_ref" value="{{ source.credentials_ref }}"
+             placeholder="DISCORD_USER_TOKEN" autocomplete="off">
+      <small>Env-var <em>name</em> holding the secret — never the value itself.</small>
+    </label>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Save</button>
+      <a class="btn" href="{{ url_for('dashboard') }}">Cancel</a>
+    </div>
+  </form>
+</section>
+
+{% endblock %}

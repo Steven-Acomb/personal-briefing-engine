@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if original_name else 'New' }} briefing{% endblock %}
+{% block content %}
+
+<section class="panel form-panel">
+  <div class="panel-head"><h2>{{ 'Edit' if original_name else 'New' }} briefing</h2></div>
+
+  <form method="post" action="{{ url_for('briefing_save') }}" class="form">
+    <input type="hidden" name="original_name" value="{{ original_name }}">
+
+    <label>Name <span class="req">*</span>
+      <input name="name" value="{{ briefing.name }}" required
+             placeholder="daily-morning" autocomplete="off">
+    </label>
+
+    <div class="two-col">
+      <label>Schedule (cron) <span class="req">*</span>
+        <input name="schedule" value="{{ briefing.schedule }}" required
+               placeholder="0 7 * * *" class="mono" autocomplete="off">
+      </label>
+      <label>Lookback window <span class="req">*</span>
+        <input name="lookback_window" value="{{ briefing.lookback_window }}" required
+               placeholder="24h" class="mono" autocomplete="off">
+      </label>
+    </div>
+
+    <div class="two-col">
+      <fieldset>
+        <legend>Output</legend>
+        {% for o in outputs %}
+          <label class="check"><input type="checkbox" name="output" value="{{ o }}"
+            {{ 'checked' if o in briefing.output }}> {{ o }}</label>
+        {% endfor %}
+      </fieldset>
+      <fieldset>
+        <legend>Delivery</legend>
+        {% for d in deliveries %}
+          <label class="check"><input type="checkbox" name="delivery" value="{{ d }}"
+            {{ 'checked' if d in briefing.delivery }}> {{ d }}</label>
+        {% endfor %}
+      </fieldset>
+    </div>
+
+    <label>Synthesis instruction <span class="req">*</span>
+      <textarea name="synthesis_instruction" rows="8" required
+        placeholder="What to focus on, tone, length, what to ignore…">{{ briefing.synthesis_instruction }}</textarea>
+    </label>
+
+    <fieldset class="sources-fs">
+      <legend>Sources <span class="req">*</span></legend>
+      <div id="source-rows">
+        {% for sc in briefing.sources %}
+          <div class="source-row">
+            <select name="src_source_id">
+              <option value="">— source —</option>
+              {% for sid in all_sources.keys() %}
+                <option value="{{ sid }}" {{ 'selected' if sc.source_id == sid }}>{{ sid }}</option>
+              {% endfor %}
+            </select>
+            <input name="src_keyword_filter" value="{{ sc.keyword_filter }}"
+                   placeholder="keyword filter (optional, comma-separated)" autocomplete="off">
+            <button type="button" class="btn btn-danger row-del" title="remove">✕</button>
+          </div>
+        {% endfor %}
+      </div>
+      <button type="button" class="btn" id="add-source">+ Add source</button>
+      <small>Multiple sources are pooled and synthesized together in one pass.</small>
+    </fieldset>
+
+    <template id="source-row-tpl">
+      <div class="source-row">
+        <select name="src_source_id">
+          <option value="">— source —</option>
+          {% for sid in all_sources.keys() %}
+            <option value="{{ sid }}">{{ sid }}</option>
+          {% endfor %}
+        </select>
+        <input name="src_keyword_filter" placeholder="keyword filter (optional, comma-separated)" autocomplete="off">
+        <button type="button" class="btn btn-danger row-del" title="remove">✕</button>
+      </div>
+    </template>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Save</button>
+      <a class="btn" href="{{ url_for('dashboard') }}">Cancel</a>
+    </div>
+  </form>
+</section>
+
+<script src="{{ url_for('static', filename='forms.js') }}"></script>
+{% endblock %}

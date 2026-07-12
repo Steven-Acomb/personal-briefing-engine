@@ -78,6 +78,9 @@ python scheduler.py list                    # briefings + next fire times
 python scheduler.py once --briefing NAME    # run one now  (--dry-run = free wiring check)
 python scheduler.py run                     # start the scheduling loop (blocks; fires on cron; you keep it alive — ROADMAP ISSUE-2)
 python scheduler.py history                 # past briefs (from SQLite)
+
+# authoring UI — edit sources/briefings in a browser instead of hand-editing TOML
+python -m web                               # http://127.0.0.1:8765 (localhost only)
 ```
 
 Output → `briefs/` (gitignored): timestamped `.md`/`.mp3` plus a stable
@@ -97,8 +100,10 @@ core/
   delivery.py     # local file drop (email / web page: not built)
   store.py        # SQLite: brief history + per-source watermark (text stays as files)
   pipeline.py     # run one briefing end-to-end: gather -> synth -> tts -> deliver
+  config_edit.py  # comment-preserving, atomic, validated TOML writer (web UI's write path)
 adapters/
   discord.py      # user-token REST history -> IngestedItem  (telegram/rss/hn: not built)
+web/              # localhost authoring UI (Flask): edit sources/briefings; python -m web
 config/
   sources.toml    # where to read from (ships with one neutral example; add real channels)
   briefings.toml  # named scheduled digests + synthesis instructions

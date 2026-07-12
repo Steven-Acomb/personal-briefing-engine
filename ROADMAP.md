@@ -52,6 +52,25 @@ second provider lands). This is a "which provider" decision, not a rearchitectur
 
 ---
 
+## Web UI (`web/`, localhost authoring + ops)
+
+A localhost-only Flask app (`python -m web`, binds 127.0.0.1). Viewer + trigger
+over the durable config/artifacts — deliberately NOT the scheduler (cron still
+runs `scheduler.py once`; the server holds no run state).
+
+- **M1 — authoring: DONE.** CRUD for sources + briefings via forms that write
+  through `core/config_edit.py` (tomlkit round-trip, atomic validate-then-replace,
+  comment-preserving). Delete of a referenced source is blocked.
+- **M2 — operational: TODO.** Render `FAILED-<briefing>.txt` markers + a
+  `logs/briefing.log` tail, and a per-briefing **Run Now** button (shell out to
+  `scheduler.py once`, fire-and-forget + poll, in-flight guard).
+- **Deferred (low priority):** a Discord **channel picker** (list channels the
+  account can see → kills the F12/token-copy dance); a **"test source"** dry-fetch
+  preview button (reuses the adapter path); **run-history** (extend the existing
+  `store.brief` table to also record failed/attempted runs — NOT a new store, and
+  it does not bundle with item-persistence). Consumption/audio is out of scope by
+  decision (briefs are consumed as files synced to the phone).
+
 ## Remaining build-sequence work (planned, not blockers)
 
 - **Telegram adapter** — last chat source. Telethon userbot; heavier setup than
