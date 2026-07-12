@@ -65,27 +65,54 @@ second provider lands). This is a "which provider" decision, not a rearchitectur
 
 ---
 
-## ISSUE-2: Unattended reliability — how does it actually run daily? (OPEN, highest-priority for real use)
+## ISSUE-2: Unattended scheduling / reboot survival — WON'T BUILD (decided 2026-07-11)
 
-`scheduler run` is a **blocking foreground process** that must stay alive.
-Nothing supervises it: a desktop reboot, a crash, or a closed terminal and it's
-**silently dead** until noticed. No keep-alive story.
+**Decision: keeping the process alive across reboots is the user's problem, not
+this project's.** We will not ship OS-scheduler integration (systemd unit / Task
+Scheduler XML / cron installers). Rationale:
 
-**To decide/build:** the run model — systemd user service (Linux) / Task
-Scheduler (Windows) / a plain OS-cron that invokes `scheduler.py once` per
-briefing instead of a long-lived `run`. The cron-`once` approach may be simpler
-and more robust than keeping APScheduler alive (it sidesteps the supervision
-problem entirely), at the cost of the self-contained scheduler. Cross-platform
-(Win + Ubuntu) matters here.
+- `scheduler.py run` holds **zero persistent state**. It's an in-memory
+  APScheduler timer. The watermark, brief history, and the schedule itself all
+  live on disk (SQLite + `briefings.toml`), so a manual `python scheduler.py run`
+  after a reboot loses **nothing** — it reads the watermark back and continues.
+- Missed runs **self-heal**. Ingestion is watermark-incremental with a lookback
+  floor: `since = max(now − lookback, watermark)`. If a scheduled run is missed
+  (box was off), the next run pulls everything since the last *successful* run.
+  A reboot therefore delays a digest and merges it into the next one — it does
+  not drop messages.
 
-## ISSUE-3: Failure visibility / observability (OPEN)
+Given that, wrapping the launch in an OS scheduler buys only "fire at exactly
+07:00 even if the machine was off at 07:00" and "don't re-type one command after
+a reboot" — not worth a per-OS integration to maintain.
 
-Scheduled runs print to **stdout only** — run detached, that output is lost.
-There's no log file and no failure notification. An **expired Discord token**
-(or any source error) currently degrades to empty/short briefs **silently**
-(gather skips the failing source by design). For an unattended tool you'd want:
-a rotating log file, and a "your brief failed / a source errored" alert (email,
-push, or just a marker file).
+**If you want it unattended anyway:** put a single line in whatever scheduler
+your OS already has — `python scheduler.py once --briefing NAME` on a timer (Task
+Scheduler on Windows, cron/systemd-timer on Linux). That's a per-machine
+deployment choice you make when you deploy; it's not code this repo owns.
+
+## ISSUE-3: Failure visibility / observability — ADDRESSED (2026-07-11)
+
+Was: scheduled runs printed to **stdout only** (lost when detached), and an
+**expired Discord token** (or any source error) degraded to an empty/short brief
+**silently** — `gather` skips a failing source by design, so nothing surfaced.
+
+Built (`core/obs.py`, wired through `core/pipeline.py` + `scheduler.py`):
+
+- **Rotating log file** `logs/briefing.log` (gitignored). Every run tees its
+  `[gather]`/`[pipeline]` lines to it, so detached runs leave a trail. Console
+  output is unchanged.
+- **Error vs. empty is now distinguished.** A source that *errors* (bad/expired
+  token, 403/404, unknown `source_id`) is recorded; a source that legitimately
+  has nothing, or has no adapter yet, is not.
+- **Loud failure marker** `briefs/FAILED-<briefing>.txt`, written when any source
+  errors and auto-cleared on the next fully-clean run. Names the failed source +
+  likely cause (token). The `BriefResult.failed` flag drives a `⚠` line in the
+  scheduler output, and a partial brief is recorded with status `partial`.
+
+**Still open (optional, lower priority):** a *push* alert (email/ntfy/etc.) on
+failure — right now you have to see the marker/log. Ties into ISSUE-6 (token
+expiry). A marker file is enough for a desktop-local tool; revisit if it ever
+runs somewhere you don't look.
 
 ## ISSUE-4: No automated tests (OPEN)
 

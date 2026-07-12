@@ -110,9 +110,17 @@ pip install -e .
 
 ## 4. Smoke test on fake data
 
-With the env active and `.env` filled in, generate a brief from the built-in
-fake fixtures — no real ingestion needed. The text path needs only the Anthropic
-key; audio also needs the OpenAI key.
+First copy the config templates into place (the live files are gitignored, same
+as `.env`, so they never carry your real channel IDs into git):
+
+```bash
+cp config/sources.toml.example config/sources.toml
+cp config/briefings.toml.example config/briefings.toml
+```
+
+With the env active, `.env` filled in, and config copied, generate a brief from
+the built-in fake fixtures — no real ingestion needed. The text path needs only
+the Anthropic key; audio also needs the OpenAI key.
 
 ```bash
 python run_fake.py --no-audio    # written brief only (text is the source of truth)

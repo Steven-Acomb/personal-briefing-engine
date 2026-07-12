@@ -28,9 +28,15 @@ synthesis → text brief → OpenAI TTS → local file-drop delivery**, with a S
 history + incremental per-source watermark, driven by APScheduler. The framework
 is general and data-driven — adding a source is a config entry, not code.
 
-Not yet built: Telegram + research/news adapters, email/web delivery, and the
-operational "run it unattended, reliably" layer (supervision, logging, failure
-alerts). See **ROADMAP.md** for the full list and what's highest-priority.
+Runs leave a rotating log (`logs/briefing.log`) and drop a loud
+`briefs/FAILED-<briefing>.txt` marker when a source errors, so an expired token
+can't silently empty a brief (ROADMAP ISSUE-3).
+
+Not yet built: Telegram + research/news adapters, and email/web delivery.
+**Reboot survival is intentionally out of scope** — `scheduler run` holds no
+persistent state and missed runs self-heal via the watermark, so keeping it
+alive across reboots is a per-machine deployment choice, not this project's job
+(ROADMAP ISSUE-2). See **ROADMAP.md** for the full list and priorities.
 
 ---
 
@@ -40,11 +46,17 @@ Full walkthrough (keys, environment, Discord token): **HUMAN_TODO.md**. Quick
 version — requires Python ≥ 3.11:
 
 ```bash
-cp .env.example .env                 # add ANTHROPIC_API_KEY (+ OPENAI_API_KEY for audio)
+cp .env.example .env                             # add ANTHROPIC_API_KEY (+ OPENAI_API_KEY for audio)
+cp config/sources.toml.example config/sources.toml       # live config is gitignored; edit locally
+cp config/briefings.toml.example config/briefings.toml
 conda env create -f environment.yml  # or: uv sync  |  or: python -m venv .venv && pip install -e .
 conda activate personal-briefing-engine
 python run_fake.py --no-audio        # smoke test: a brief from fake data (needs only ANTHROPIC_API_KEY)
 ```
+
+Config follows the same pattern as `.env`: the tracked `config/*.toml.example`
+files are neutral templates; your live `config/*.toml` (with real channel IDs)
+are gitignored so they never get committed.
 
 Resync after dependencies change: `conda env update -f environment.yml --prune`.
 Dependencies live in `pyproject.toml` (single source of truth); `environment.yml`
@@ -64,7 +76,7 @@ python -m adapters.discord <channel_id> --hours 24
 # real pipeline (needs DISCORD_USER_TOKEN in .env + a real channel in config/sources.toml)
 python scheduler.py list                    # briefings + next fire times
 python scheduler.py once --briefing NAME    # run one now  (--dry-run = free wiring check)
-python scheduler.py run                     # start the scheduling loop (blocks; fires on cron)
+python scheduler.py run                     # start the scheduling loop (blocks; fires on cron; you keep it alive — ROADMAP ISSUE-2)
 python scheduler.py history                 # past briefs (from SQLite)
 ```
 

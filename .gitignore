@@ -9,11 +9,19 @@
 *.session
 *.session-journal
 
+# Live config — contains your real channel/chat IDs. Copy from the tracked
+# *.toml.example templates and edit locally (same pattern as .env / .env.example).
+config/sources.toml
+config/briefings.toml
+
 # Generated briefs (text + audio)
 briefs/
 
 # SQLite store (brief history + run-state)
 data/
+
+# Rotating run log + failure markers (observability; see ROADMAP ISSUE-3)
+logs/
 
 # Python
 __pycache__/
