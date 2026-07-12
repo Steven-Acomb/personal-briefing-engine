@@ -73,14 +73,94 @@ runs `scheduler.py once`; the server holds no run state).
 
 ## Remaining build-sequence work (planned, not blockers)
 
-- **Telegram adapter** — BUILT (`adapters/telegram.py`, Telethon userbot; wired
-  into `gather_items`). Pending the owner's one-time setup: API id/hash + login
-  (HUMAN_TODO §7). Not yet validated end-to-end against a real chat.
-- **Research/news adapters** — arXiv, RSS, HN. Read-only, no auth. Where the
-  source ontology's generality pays off.
-- **Wire up real briefings** — point config at actual channels + schedules.
+- **Telegram adapter** — DONE (`adapters/telegram.py`, Telethon userbot; wired
+  into `gather_items`; validated end-to-end against real chats 2026-07-12).
+- **Feed / research / news adapters** — now the priority (feeds are where the
+  volume-and-signal is). See the **Adapter roadmap** below.
 - **Email / web-page delivery** — currently the one `NotImplementedError` stub in
   `core/delivery.py`; local file drop is the only working target.
+
+---
+
+## Adapter roadmap (prioritized)
+
+Chat sources (Discord, Telegram) are in. The volume-and-signal now lives in
+**feeds** — the top of this list reflects that: these feeds plus the chats already
+wired will fill a briefing far better than chasing more chat platforms. Ordered by
+signal ÷ risk ÷ effort.
+
+**Cross-cutting notes:**
+
+- **`keyword_filter` earns its keep on feed-like sources.** Independent-item
+  sources (everything feed-like below — each entry stands alone) should get
+  aggressive per-briefing `keyword_filter` pre-synthesis. Threaded/chat sources
+  should NOT (we cleared the filters off the Discord/Telegram sources — they strip
+  conversation). `SourceConfig.keyword_filter` exists precisely for this split.
+- **The model-choice knob goes live around here.** Synthesis is Opus-on-everything
+  today (`core/synthesize.py`, hardcoded `claude-opus-4-8`). As feed count grows,
+  daily cost bites — add a per-briefing (or global) model override so high-volume
+  briefings can run on `claude-sonnet-5`. (Foreshadowed in HUMAN_TODO's cost note.)
+
+### Tier 1 — build now (high signal, low risk, fixes the volume problem)
+
+1. **Generic RSS adapter** — the highest-leverage single build. `feedparser`, each
+   entry = one `IngestedItem`. One adapter unlocks blogs, Substacks, trade press
+   (Semiconductor Engineering, EE Times, IEEE Spectrum), podcasts, per-channel
+   YouTube, Mastodon, Lobsters — all public, near-zero risk. **Do this first.**
+2. **Gmail-label newsletter adapter** — point it at a Gmail label you route
+   newsletters into; the inbox becomes a universal newsletter aggregator (catches
+   email-only surface that RSS misses: industry digests, Scholar alerts, email
+   Substacks). Leverages the already-connected Gmail integration.
+3. **arXiv** — clean API. `cs.AR` (computer architecture — the chip-design
+   bullseye) + `cs.AI` / `cs.LG` / `eess.SP`. Independent-item; keyword filtering ideal.
+
+### Tier 2 — clean and additive
+
+4. **Hacker News** — Algolia API, keyword-filterable, broad tech signal, low effort.
+5. **GitHub** — releases/activity on tracked repos + tools (BAG, EDA tooling).
+   Clean API; "new release of X" punches above its slot for a working engineer.
+6. **Semantic Scholar** — broader coverage + citation metadata beyond arXiv; lower
+   marginal value once arXiv exists, but cheap.
+
+### Tier 3 — feasible, verify terms first
+
+7. **Reddit (specific subreddits)** — subreddit JSON / `.rss` works for low-volume
+   personal reads, but API terms tightened/went paid in 2023 — verify before
+   committing. `keyword_filter` applies.
+8. **Prediction markets (Metaculus)** — clean API; surface movement on markets you
+   follow. Niche-but-yours.
+
+### Tier 4 — gated on a deliberate decision (judgment, not effort)
+
+9. **Slack** — biggest want; API is good, a user token reads what you can see.
+   **The gate:** routing an employer's internal comms through external LLM + TTS
+   APIs is a real IP/confidentiality exposure at a chip-IP company and may touch
+   confidentiality terms. Decide deliberately; consider scoping to specific
+   low-sensitivity channels, not the whole workspace.
+10. **Signal** — **reverses the HANDOFF § Scope exclusion of Signal.** Feasible via
+    `signal-cli` as a linked device, but that puts a Signal device-identity + keys
+    on the box — exactly the posture that exclusion was avoiding. Eyes-open only.
+
+### Tier 5 — poor ROI / likely infeasible (kept for completeness)
+
+11. **Twitter/X** — read API ~$100/mo (free tier won't do it), unofficial libs
+    fragile, nitter effectively dead. Only path is a flaky per-account RSS bridge.
+    Parked until access economics change.
+12. **Blind** — no public API, work-email gated, aggressively anti-scraping. No
+    clean path; parked.
+13. **Instagram DMs** — no official personal-DM API; unofficial login-as-you libs
+    are ban-bait. Lowest signal, highest account risk. Recommend against.
+
+### Bonus / non-source elements
+
+- **Google Calendar** — already connected; not a "tracked source" but surfacing
+  today's / this-week's events as a briefing element is a cheap, natural daily add.
+
+### Subsumed (folded into the above, NOT separate adapters)
+
+- **Substack** → generic RSS (append `/feed` to a publication URL).
+- **Industry newsletters** → RSS where feed-based, Gmail-label adapter where email-only.
+- **Blogs, podcasts, YouTube channels, trade press, Mastodon, Lobsters** → generic RSS.
 
 ---
 
