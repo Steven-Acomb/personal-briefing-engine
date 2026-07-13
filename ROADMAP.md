@@ -82,6 +82,38 @@ runs `scheduler.py once`; the server holds no run state).
 
 ---
 
+## Phone audio delivery — get the daily brief onto the phone to listen (deferred)
+
+**The actual consumption endpoint.** Audio is the preferred mode (HANDOFF): the
+7 AM run already produces `briefs/latest-daily-morning.mp3` on the desktop, but
+nothing gets it to the phone. Goal: a daily spoken brief that just *appears* on
+the phone to listen to on a walk, hands-off.
+
+**Deferred until content is substantial** — build once enough sources make the
+daily brief worth listening to every day (owner's call, 2026-07-12). Noted now so
+it isn't forgotten.
+
+**Candidate approaches (decide when we build):**
+
+- **Private podcast feed (strongest fit).** Serve the mp3s + a generated RSS feed;
+  a podcast app on the phone subscribes and auto-downloads each morning's episode
+  — exactly the podcast-style consumption the project is designed around. Needs
+  the mp3s reachable by the phone *behind auth*; the hosting is the open question.
+- **File sync** — Syncthing / Dropbox / iCloud on `briefs/`, play the mp3 with a
+  file/player app. Simplest, but no "new episode ready" experience.
+- **Email delivery** — attach/link the mp3 in a daily email (reuses the
+  `core/delivery.py` email target that's currently a stub).
+
+**Security constraint (non-negotiable):** briefs contain private chat + personal
+content. Whatever hosts or transmits the audio must be **private / authenticated**,
+never a public URL — same posture as the tokens (HANDOFF § Security). Rules out
+dropping mp3s on an open web page.
+
+**Note:** separate from the web UI — audio *consumption* was deliberately cut from
+that surface (localhost, desktop-only). This is its own delivery path.
+
+---
+
 ## Adapter roadmap (prioritized)
 
 Chat sources (Discord, Telegram) are in. The volume-and-signal now lives in
