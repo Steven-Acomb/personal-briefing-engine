@@ -7,8 +7,9 @@
     <a class="btn btn-primary" href="{{ url_for('briefing_new') }}">+ New briefing</a>
   </div>
   {% if briefings %}
+  <div class="table-wrap">
   <table class="grid">
-    <thead><tr><th>Name</th><th>Schedule</th><th>Lookback</th><th>Output</th><th>Sources</th><th></th></tr></thead>
+    <thead><tr><th>Name</th><th>Schedule</th><th>Lookback</th><th>Output</th><th>Delivery</th><th>Sources</th><th></th></tr></thead>
     <tbody>
     {% for b in briefings %}
       <tr>
@@ -16,7 +17,9 @@
         <td class="mono">{{ b.schedule }}</td>
         <td class="mono">{{ b.lookback_window }}</td>
         <td>{{ b.output | map(attribute='value') | join('+') }}</td>
-        <td class="mono dim">{{ b.sources | map(attribute='source_id') | join(', ') }}</td>
+        <td>{{ b.delivery | map(attribute='value') | join('+') }}</td>
+        {# count, not the full list — 30 source ids blew the table out of the panel #}
+        <td class="dim" title="{{ b.sources | map(attribute='source_id') | join(', ') }}">{{ b.sources | length }}</td>
         <td class="row-actions">
           <a class="btn" href="{{ url_for('briefing_edit', name=b.name) }}">Edit</a>
           <form method="post" action="{{ url_for('briefing_delete', name=b.name) }}"
@@ -28,6 +31,7 @@
     {% endfor %}
     </tbody>
   </table>
+  </div>
   {% else %}
     <p class="empty">No briefings yet.</p>
   {% endif %}
@@ -39,6 +43,7 @@
     <a class="btn btn-primary" href="{{ url_for('source_new') }}">+ New source</a>
   </div>
   {% if sources %}
+  <div class="table-wrap">
   <table class="grid">
     <thead><tr><th>ID</th><th>Platform</th><th>Identifier</th><th>Label</th><th>Cred ref</th><th></th></tr></thead>
     <tbody>
@@ -46,7 +51,7 @@
       <tr>
         <td class="mono">{{ s.id }}</td>
         <td>{{ s.platform.value }}</td>
-        <td class="mono dim">{{ s.identifier }}</td>
+        <td class="mono dim trunc" title="{{ s.identifier }}">{{ s.identifier }}</td>
         <td class="dim">{{ s.display_name or '(auto)' }}</td>
         <td class="mono dim">{{ s.credentials_ref or '—' }}</td>
         <td class="row-actions">
@@ -60,6 +65,7 @@
     {% endfor %}
     </tbody>
   </table>
+  </div>
   {% else %}
     <p class="empty">No sources yet.</p>
   {% endif %}

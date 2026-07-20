@@ -34,7 +34,7 @@ body {
   border: 1px solid var(--edge); border-radius: 999px; padding: 2px 10px;
 }
 
-.wrap { max-width: 960px; margin: 24px auto; padding: 0 20px; }
+.wrap { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
 
 /* ---- panels ---- */
 .panel {
@@ -50,7 +50,12 @@ body {
 .empty { color: var(--dim); margin: 6px 0 0; }
 
 /* ---- tables ---- */
+/* Tables can exceed the panel (long feed URLs, many sources) — scroll them
+   INSIDE the panel instead of letting them burst through its rounded edge. */
+.table-wrap { overflow-x: auto; }
 .grid { width: 100%; border-collapse: collapse; }
+/* long single-line values (feed URLs, ids) ellipsize instead of stretching */
+.trunc { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .grid th, .grid td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--edge); vertical-align: middle; }
 .grid th { font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: var(--dim); font-weight: 600; }
 .grid tr:last-child td { border-bottom: none; }
