@@ -13,6 +13,7 @@ dependencies = [
     "tomlkit>=0.12",      # comment-preserving TOML round-trip for the config editor
     "Telethon>=1.36",     # Telegram userbot adapter (MTProto, user account)
     "feedparser>=6.0",    # generic RSS/Atom adapter (blogs, Substacks, trade press, …)
+    "feedgen>=1.0",       # podcast RSS feed generation (podcast delivery target)
     # Added as each later subsystem lands:
     #   arxiv             — arXiv research adapter
 ]

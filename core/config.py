@@ -20,6 +20,23 @@ from core.models import (
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
 
+# Base URL the podcast feed + enclosure links are built from. Points at the small
+# feed/audio server (podcast_server.py). Locally that's localhost; for phone
+# access it's the Tailscale HTTPS hostname — set via `podcast_base_url` in
+# briefings.toml, never hardcoded (see HUMAN_TODO §8).
+DEFAULT_PODCAST_BASE_URL = "http://localhost:8766"
+
+
+def load_podcast_base_url(path: Path | None = None) -> str:
+    """Top-level `podcast_base_url` from briefings.toml, or the local default."""
+    path = path or CONFIG_DIR / "briefings.toml"
+    try:
+        with open(path, "rb") as f:
+            raw = tomllib.load(f)
+    except FileNotFoundError:
+        return DEFAULT_PODCAST_BASE_URL
+    return str(raw.get("podcast_base_url") or DEFAULT_PODCAST_BASE_URL).rstrip("/")
+
 
 def load_sources(path: Path | None = None) -> dict[str, Source]:
     """Load sources.toml, keyed by source id."""

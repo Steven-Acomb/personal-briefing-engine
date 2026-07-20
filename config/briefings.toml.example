@@ -5,6 +5,13 @@
 #
 # `synthesis_instruction` is first-class. Expect to iterate on it heavily — it
 # is where the real value of the digest is tuned (see HANDOFF.md § Ontology).
+#
+# `podcast_base_url` (below, optional) is the base the podcast feed + enclosure
+# links are built from — i.e. where podcast_server.py is reachable. Defaults to
+# http://localhost:8766 for local testing; set it to your Tailscale HTTPS
+# hostname so a phone can fetch the feed (see HUMAN_TODO.md §8).
+
+podcast_base_url = "http://localhost:8766"
 
 [[briefing]]
 name = "daily-morning"

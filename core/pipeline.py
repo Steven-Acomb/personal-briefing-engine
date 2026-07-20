@@ -204,13 +204,10 @@ def run_briefing(
         # Default voice is OpenAI echo, plain (see ROADMAP ISSUE-1).
         audio_path = synthesize_audio(text, audio_path)
 
-    # --- delivery (dry runs must not clobber the real 'latest' pointer) ---
-    delivered = (
-        [] if dry_run
-        else deliver(briefing.name, text_path, audio_path, briefing.delivery)
-    )
-
-    # --- record in history (not for dry runs) ---
+    # --- record in history BEFORE delivery (not for dry runs) ---
+    # Order matters: the podcast delivery target builds the feed from the recorded
+    # brief history, so this run's episode must already be in the DB or it would
+    # be missing from the feed until the next run.
     if not dry_run:
         store.record_brief(
             briefing.name,
@@ -221,6 +218,12 @@ def run_briefing(
             audio_path=audio_path,
             status="partial" if errors else "delivered",
         )
+
+    # --- delivery (dry runs must not clobber the real 'latest' pointer) ---
+    delivered = (
+        [] if dry_run
+        else deliver(briefing.name, text_path, audio_path, briefing.delivery)
+    )
 
     return BriefResult(
         briefing_name=briefing.name,

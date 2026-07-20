@@ -36,6 +36,7 @@ class OutputMode(str, Enum):
 class DeliveryTarget(str, Enum):
     LOCAL = "local"
     EMAIL = "email"
+    PODCAST = "podcast"  # regenerate this briefing's podcast RSS feed
 
 
 class BriefStatus(str, Enum):

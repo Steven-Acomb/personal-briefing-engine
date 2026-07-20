@@ -113,6 +113,20 @@ def set_status(brief_id: int, status: str, db_path: Path = DB_PATH) -> None:
         c.execute("UPDATE brief SET status = ? WHERE id = ?", (status, brief_id))
 
 
+def recent_briefs_with_audio(
+    briefing_id: str, limit: int = 20, db_path: Path = DB_PATH
+) -> list[sqlite3.Row]:
+    """Most-recent briefs for a briefing that actually have audio — the source of
+    truth for a podcast feed, which is audio-only (text-only briefs are skipped)."""
+    with _connect(db_path) as c:
+        return c.execute(
+            "SELECT * FROM brief WHERE briefing_id = ? "
+            "AND audio_path IS NOT NULL AND audio_path != '' "
+            "ORDER BY generated_at DESC LIMIT ?",
+            (briefing_id, limit),
+        ).fetchall()
+
+
 def recent_briefs(
     briefing_id: str | None = None, limit: int = 20, db_path: Path = DB_PATH
 ) -> list[sqlite3.Row]:

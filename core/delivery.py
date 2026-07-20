@@ -41,6 +41,13 @@ def deliver(
                 latest_audio = delivery_dir / f"latest-{briefing_name}{audio_path.suffix}"
                 copyfile(audio_path, latest_audio)
                 written.append(latest_audio)
+        elif target is DeliveryTarget.PODCAST:
+            # Regenerate this briefing's feed from the recorded brief history.
+            # (run_briefing records the brief BEFORE delivering, so this run's
+            # episode is already in the DB and lands in the feed.)
+            from core.podcast import write_feed  # lazy: only when podcast is used
+
+            written.append(write_feed(briefing_name))
         else:
             # email / web page — not built yet (see ROADMAP / HANDOFF).
             raise NotImplementedError(f"Delivery target {target.value!r} not implemented yet")
