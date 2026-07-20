@@ -259,83 +259,96 @@ In the web UI (or `config/sources.toml`): a source with **platform `telegram`**,
 
 ## 8. Podcast delivery — listening to briefs on your phone
 
-Deliver a briefing's audio as a **private podcast feed** your iOS podcast app
-subscribes to. The desktop generates the feed and serves the audio; **Tailscale**
-makes it reachable from the phone over HTTPS without exposing anything to the
-public internet (the tailnet is the security boundary — there's no auth layer).
+Goal: your daily brief shows up as a **podcast episode on your phone**, auto-downloaded,
+ready to play on a walk.
 
-### a) Turn on the podcast delivery target
+**How it works (the mental model):** the desktop generates a private podcast feed
+and serves the audio. **Tailscale** — a free private network — lets your phone reach
+*this desktop* directly and securely, so nothing is ever exposed to the public
+internet (your briefs are private; that's the whole point). A podcast app on the
+phone subscribes to the feed over that connection.
 
-In the web UI, edit the briefing and tick **podcast** in the Delivery group
-(alongside `local`). The briefing must also have **audio** in its output — a
-podcast feed is audio-only, and text-only briefs are skipped. Each briefing is its
-own show, written to `briefs/feeds/<briefing>.xml`.
+**The desktop half is code and already works.** What's left is all on you: install
+Tailscale on both devices, then a podcast app. Do the steps in order.
 
-### b) Run the feed/audio server
+### Step 1 — turn on podcast delivery (once)
+
+In the web UI (`python -m web`), open the briefing's **Edit** form and tick
+**podcast** in the Delivery group (keep `local` too). The briefing must also have
+**audio** in its output — the feed is audio-only. From then on, each run
+regenerates the feed at `briefs/feeds/<briefing>.xml`. *(For `daily-morning` this
+is already done.)*
+
+### Step 2 — run the feed/audio server, leave it running
 
 ```bash
 python -m podcast_server          # http://127.0.0.1:8766
 ```
 
-Leave it running. **How it stays up is your call** (a terminal, a startup
-shortcut) — this project deliberately ships no service installer or supervision.
-If it's down, the phone's poll just fails and retries later.
+Confirm it works locally: open `http://127.0.0.1:8766/feed/daily-morning.xml` — you
+should see the feed XML. (The bare root `/` shows "Not Found" on purpose; only
+`/feed/...` and `/audio/...` exist.)
 
-### c) Expose it over Tailscale (HTTPS)
+Keep this running whenever you want the phone to fetch. **How it stays up is your
+call** (a terminal, a startup shortcut) — the project ships no service installer.
+If it's down, the phone just retries later.
 
-With Tailscale installed and logged in on the desktop:
+### Step 3 — install Tailscale on BOTH devices
+
+1. **This desktop:** download from <https://tailscale.com/download> (Windows),
+   install, launch, and **sign in** (Google / Microsoft / email — remember which).
+2. **Your iPhone:** App Store → "Tailscale" → sign in with the **same account** →
+   toggle it **on** (it should say "Connected").
+
+Both devices signed into the same account = they can now reach each other privately.
+
+### Step 4 — expose the server over Tailscale (desktop)
 
 ```bash
 tailscale serve --bg --https=443 localhost:8766
+tailscale serve status
 ```
 
-`--bg` persists the config — it resumes after a reboot or Tailscale restart. The
-service is then at `https://<machine>.<tailnet>.ts.net/`.
+`status` prints your machine's URL, like `https://YOUR-PC.YOUR-TAILNET.ts.net`.
+`--bg` persists it across reboots. (To undo later:
+`tailscale serve --https=443 localhost:8766 off`, or `tailscale serve reset`.)
 
-- check it: `tailscale serve status`
-- turn it off: `tailscale serve --https=443 localhost:8766 off`
-- clear everything: `tailscale serve reset`
+### Step 5 — point the feed at that hostname
 
-### d) Point the feed at that hostname
-
-Episode links must be fetchable **from the phone**, so they can't say
-`localhost`. Set the base URL as a top-level key in `config/briefings.toml`:
+The episode links must be fetchable *from the phone*, so they can't say `localhost`.
+Set the URL from Step 4 as a top-level key in `config/briefings.toml`:
 
 ```toml
-podcast_base_url = "https://<machine>.<tailnet>.ts.net"
+podcast_base_url = "https://YOUR-PC.YOUR-TAILNET.ts.net"
 ```
 
-Then re-run the briefing (`python scheduler.py once --briefing NAME`) to
-regenerate the feed with the new URLs, and check it end-to-end:
+Then regenerate the feed so the links update:
+`python scheduler.py once --briefing daily-morning`.
 
-```bash
-curl https://<machine>.<tailnet>.ts.net/feed/<briefing>.xml
-```
+*(Or just paste the `ts.net` URL to your Claude Code session and it'll set this and
+regenerate for you.)*
 
-### e) iOS podcast app — ⚠️ the one unverified assumption in this design
+### Step 6 — test on the phone, then subscribe
 
-You need an app that fetches feeds **on the device**. **Apple Podcasts and
-Overcast are confirmed server-side crawlers** — *their* servers fetch the feed, and
-those servers are not on your tailnet, so they **cannot** work here.
+With Tailscale **connected** on the phone, open the feed URL in Safari:
+`https://YOUR-PC.YOUR-TAILNET.ts.net/feed/daily-morning.xml`. If the XML loads, the
+tunnel works and you're basically done.
 
-Candidates that should fetch on-device (both paid, one-time): **Downcast** or
-**iCatcher!**. Buy one and add the feed by URL:
+Then add it to a podcast app. **⚠️ Not every app works:** the app must fetch feeds
+**on the device**. **Apple Podcasts and Overcast can't** — their servers fetch the
+feed, and those servers aren't on your tailnet. Use an on-device fetcher —
+**Downcast** or **iCatcher!** (both paid, one-time). Add the feed by URL and it
+should pull the episodes.
 
-```
-https://<machine>.<tailnet>.ts.net/feed/<briefing>.xml
-```
+**This app behavior is the one unverified assumption in the design.** If neither app
+loads the feed even with the Safari test passing, **flag it** — the fix is a
+transport decision, not a workaround.
 
-**This is the one assumption that hasn't been verified.** If neither app actually
-fetches on-device (the feed won't load even with Tailscale connected), **report
-that back rather than hacking around it** — the fix is a design decision (e.g. a
-different transport), not a workaround.
-
-### f) Keep it reachable
-
-- **Tailscale on iOS must be connected** when the app polls — enable always-on /
-  on-demand so it doesn't silently drop.
-- **The desktop must be awake** for a poll to succeed. A missed poll is harmless:
-  the app retries later and the episode is still in the feed.
+### Keeping it reachable
+- **Tailscale must be connected on the phone** when the app polls (enable
+  always-on / on-demand so it doesn't silently drop).
+- **The desktop must be awake**, with `python -m podcast_server` running. A missed
+  poll is harmless — the app retries and the episode stays in the feed.
 
 ---
 
