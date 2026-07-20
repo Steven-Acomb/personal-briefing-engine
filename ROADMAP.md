@@ -82,32 +82,33 @@ runs `scheduler.py once`; the server holds no run state).
 
 ---
 
-## Phone audio delivery — get the daily brief onto the phone to listen (deferred)
+## Phone audio delivery — BUILT (private podcast feed over Tailscale)
 
-**The actual consumption endpoint.** Audio is the preferred mode (HANDOFF): the
-7 AM run already produces `briefs/latest-daily-morning.mp3` on the desktop, but
-nothing gets it to the phone. Goal: a daily spoken brief that just *appears* on
-the phone to listen to on a walk, hands-off.
+**The consumption endpoint.** Audio is the preferred mode (HANDOFF), and the
+private-podcast-feed approach won out over file sync and email: a podcast app is
+purpose-built for "new episode each morning, auto-downloaded, listen on a walk."
 
-**Deferred until content is substantial** — build once enough sources make the
-daily brief worth listening to every day (owner's call, 2026-07-12). Noted now so
-it isn't forgotten.
+Shipped:
 
-**Candidate approaches (decide when we build):**
+- **`podcast` delivery target** (`core/delivery.py` + `core/podcast.py`) —
+  regenerates a per-briefing RSS feed from the SQLite brief history on each
+  delivery. Audio-only, stable non-permalink GUIDs, enclosures built from a
+  configurable `podcast_base_url`.
+- **`podcast_server.py`** — a tiny localhost-only Flask process (port 8766)
+  serving just the feed and the mp3s, with **Range support** (HTTP 206) so players
+  can scrub. No auth, no writes, no config access.
+- **Transport: `tailscale serve`** fronts it with HTTPS on the tailnet. **The
+  tailnet is the security boundary** — briefs hold private content, so nothing is
+  ever on a public URL (HANDOFF § Security). Human setup, no code (HUMAN_TODO §8).
 
-- **Private podcast feed (strongest fit).** Serve the mp3s + a generated RSS feed;
-  a podcast app on the phone subscribes and auto-downloads each morning's episode
-  — exactly the podcast-style consumption the project is designed around. Needs
-  the mp3s reachable by the phone *behind auth*; the hosting is the open question.
-- **File sync** — Syncthing / Dropbox / iCloud on `briefs/`, play the mp3 with a
-  file/player app. Simplest, but no "new episode ready" experience.
-- **Email delivery** — attach/link the mp3 in a daily email (reuses the
-  `core/delivery.py` email target that's currently a stub).
+**Open / unverified:** the iOS app must fetch feeds **on-device**. Apple Podcasts
+and Overcast are server-side crawlers and *cannot* reach a tailnet. Downcast and
+iCatcher! are the candidates — **not yet confirmed**. If neither works on-device,
+that's a transport design decision to revisit, not something to hack around.
 
-**Security constraint (non-negotiable):** briefs contain private chat + personal
-content. Whatever hosts or transmits the audio must be **private / authenticated**,
-never a public URL — same posture as the tokens (HANDOFF § Security). Rules out
-dropping mp3s on an open web page.
+**Deliberately not built:** OS service installers / supervision for the server
+(consistent with ISSUE-2 — staying-running is the human's choice), any web player
+or playback page, and any auth layer.
 
 **Note:** separate from the web UI — audio *consumption* was deliberately cut from
 that surface (localhost, desktop-only). This is its own delivery path.

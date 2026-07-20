@@ -83,6 +83,9 @@ python scheduler.py history                 # past briefs (from SQLite)
 
 # authoring UI — edit sources/briefings in a browser instead of hand-editing TOML
 python -m web                               # http://127.0.0.1:8765 (localhost only)
+
+# podcast feed/audio server — listen on your phone via Tailscale (HUMAN_TODO §8)
+python -m podcast_server                    # http://127.0.0.1:8766 (localhost only)
 ```
 
 Output → `briefs/` (gitignored): timestamped `.md`/`.mp3` plus a stable
@@ -136,7 +139,8 @@ core/
   fixtures.py     # hand-made fake IngestedItems (for run_fake.py)
   synthesize.py   # Claude synthesis — cross-source pass
   tts.py          # text -> audio (OpenAI echo-plain; see ROADMAP ISSUE-1)
-  delivery.py     # local file drop (email / web page: not built)
+  delivery.py     # delivery targets: local file drop + podcast feed (email: not built)
+  podcast.py      # per-briefing podcast RSS built from the SQLite brief history
   store.py        # SQLite: brief history + per-source watermark (text stays as files)
   pipeline.py     # run one briefing end-to-end: gather -> synth -> tts -> deliver
   config_edit.py  # comment-preserving, atomic, validated TOML writer (web UI's write path)
@@ -152,6 +156,7 @@ briefs/           # generated text + audio output (gitignored)
 data/             # SQLite db (gitignored)
 run_fake.py       # dev/audition runner (synthesize + voice A/B on fake data)
 scheduler.py      # entrypoint: list / once / run / history
+podcast_server.py # entrypoint: serves the podcast feed + episode audio (port 8766)
 ```
 
 ---

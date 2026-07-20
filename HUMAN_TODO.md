@@ -257,6 +257,88 @@ In the web UI (or `config/sources.toml`): a source with **platform `telegram`**,
 
 ---
 
+## 8. Podcast delivery — listening to briefs on your phone
+
+Deliver a briefing's audio as a **private podcast feed** your iOS podcast app
+subscribes to. The desktop generates the feed and serves the audio; **Tailscale**
+makes it reachable from the phone over HTTPS without exposing anything to the
+public internet (the tailnet is the security boundary — there's no auth layer).
+
+### a) Turn on the podcast delivery target
+
+In the web UI, edit the briefing and tick **podcast** in the Delivery group
+(alongside `local`). The briefing must also have **audio** in its output — a
+podcast feed is audio-only, and text-only briefs are skipped. Each briefing is its
+own show, written to `briefs/feeds/<briefing>.xml`.
+
+### b) Run the feed/audio server
+
+```bash
+python -m podcast_server          # http://127.0.0.1:8766
+```
+
+Leave it running. **How it stays up is your call** (a terminal, a startup
+shortcut) — this project deliberately ships no service installer or supervision.
+If it's down, the phone's poll just fails and retries later.
+
+### c) Expose it over Tailscale (HTTPS)
+
+With Tailscale installed and logged in on the desktop:
+
+```bash
+tailscale serve --bg --https=443 localhost:8766
+```
+
+`--bg` persists the config — it resumes after a reboot or Tailscale restart. The
+service is then at `https://<machine>.<tailnet>.ts.net/`.
+
+- check it: `tailscale serve status`
+- turn it off: `tailscale serve --https=443 localhost:8766 off`
+- clear everything: `tailscale serve reset`
+
+### d) Point the feed at that hostname
+
+Episode links must be fetchable **from the phone**, so they can't say
+`localhost`. Set the base URL as a top-level key in `config/briefings.toml`:
+
+```toml
+podcast_base_url = "https://<machine>.<tailnet>.ts.net"
+```
+
+Then re-run the briefing (`python scheduler.py once --briefing NAME`) to
+regenerate the feed with the new URLs, and check it end-to-end:
+
+```bash
+curl https://<machine>.<tailnet>.ts.net/feed/<briefing>.xml
+```
+
+### e) iOS podcast app — ⚠️ the one unverified assumption in this design
+
+You need an app that fetches feeds **on the device**. **Apple Podcasts and
+Overcast are confirmed server-side crawlers** — *their* servers fetch the feed, and
+those servers are not on your tailnet, so they **cannot** work here.
+
+Candidates that should fetch on-device (both paid, one-time): **Downcast** or
+**iCatcher!**. Buy one and add the feed by URL:
+
+```
+https://<machine>.<tailnet>.ts.net/feed/<briefing>.xml
+```
+
+**This is the one assumption that hasn't been verified.** If neither app actually
+fetches on-device (the feed won't load even with Tailscale connected), **report
+that back rather than hacking around it** — the fix is a design decision (e.g. a
+different transport), not a workaround.
+
+### f) Keep it reachable
+
+- **Tailscale on iOS must be connected** when the app polls — enable always-on /
+  on-demand so it doesn't silently drop.
+- **The desktop must be awake** for a poll to succeed. A missed poll is harmless:
+  the app retries later and the episode is still in the feed.
+
+---
+
 ## Troubleshooting
 
 - **`anthropic.AuthenticationError` / 401** — key missing or wrong in `.env`, or
@@ -283,3 +365,13 @@ In the web UI (or `config/sources.toml`): a source with **platform `telegram`**,
   chat. Prefer the `@username`; use `python -m adapters.telegram list` to find it.
 - **Telegram login asks endlessly / `FloodWait`** — too many attempts; wait it
   out. Make sure the phone number is in international format (`+1...`).
+- **Podcast feed 404s** — that briefing hasn't delivered with `podcast` ticked
+  yet, so no feed file exists. Run it once (§8a).
+- **Feed loads but episodes won't download** — `podcast_base_url` is probably
+  still `localhost`; set it to the `ts.net` hostname (§8d) and re-run the briefing
+  to regenerate the links.
+- **Feed loads but has no episodes** — the briefing produced text-only briefs.
+  Podcast feeds are audio-only; make sure `audio` is in the briefing's output.
+- **Podcast app can't reach the feed at all** — Tailscale disconnected on the
+  phone, the desktop asleep, `python -m podcast_server` not running, or the app
+  is a server-side crawler (Apple Podcasts / Overcast can't work — see §8e).
